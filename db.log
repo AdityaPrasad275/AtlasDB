@@ -1,0 +1,6 @@
+INSERT name Alice
+INSERT age 25
+INSERT city New York
+INSERT age 26
+DELETE city
+DELETE job
