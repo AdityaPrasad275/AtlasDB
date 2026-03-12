@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude
-LDFLAGS = 
+LDFLAGS = -pthread
 
 # Directories
 SRC_DIR = src

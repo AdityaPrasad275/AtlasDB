@@ -26,18 +26,22 @@ public:
 
 private:
     size_t _pool_size;
-    Page* _pages; // array of frames (should this be a vector<page*>)
+    Page* _frames; // frames is array of pages
 
     DiskManager* _disk_manager; // writing and reading pages
 
-    std::unordered_map<page_id_t, frame_id_t> _page_table;
-    // which page belongs to which frame
+    std::unordered_map<page_id_t, frame_id_t> _page_table;// which page belongs to which frame
 
     LRUReplacer* _replacer; // which page to evict
     std::list<frame_id_t> _free_frames_list;
 
-    // Find whcih frame to use (either from free frames or evict using lru replacer)
-    bool findVictim(frame_id_t *frame_id);
-
+    
     std::mutex _latch;
+    
+    page_id_t _next_page_id;
+    
+    // Find whcih frame to use (either from free frames or evict using lru replacer)
+    bool _findVictim(frame_id_t *frame_id);
+
 };
+
