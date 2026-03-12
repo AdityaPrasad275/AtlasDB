@@ -4,7 +4,7 @@
 
 int main() {
     try {
-        Database db("db.log");
+        Database db("logs/db.log");
 
         std::cout << "=== Database Test ===\n";
 

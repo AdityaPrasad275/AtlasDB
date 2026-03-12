@@ -10,7 +10,7 @@ First we build a simple Key Value store. Satisfying three simple objectives :-
 
 ## Hashmap!
 
-Now technically, all of these objectives are achieved by a simple Hashmap. Just intialize a hashmap. Done. can set, get, delete, all in $$O(1)$$. But then if you close the program, the data's gone. Which just ruins the entire purpose of database. 
+Now technically, all of these objectives are achieved by a simple Hashmap. Just intialize a hashmap. Done. can set, get, delete, all in $O(1)$. But then if you close the program, the data's gone. Which just ruins the entire purpose of database. 
 
 So we need two components 
 (1) the data in memmory, in ram, super fast fetch and execution 
@@ -102,7 +102,7 @@ private:
 
 As you can see, we expose constructor, insert, get, delete. Constructor sets up our file.
 
-In our private variables we have the name of our logFile (which we dont technically need tbh). And we've got a file descriptor. Think of this as sort of a pointer to the file. We can use this to interact with our file/persistance layer. And a hashmap, a in-memory KV store. so get becomes $$O(1)$$. (Technically insert and delete are also $$O(1)$$ but as they deal with persistence as well, they are a little slower)
+In our private variables we have the name of our logFile (which we dont technically need tbh). And we've got a file descriptor. Think of this as sort of a pointer to the file. We can use this to interact with our file/persistance layer. And a hashmap, a in-memory KV store. so get becomes $O(1)$. (Technically insert and delete are also $O(1)$ but as they deal with persistence as well, they are a little slower)
 
 In our private methods, we got replayLog, a method ran in beginning to read our file, get all data in our RAM. and we got appendLog whose responsibility is to write. and do proper error handling. ensuring our persistance. 
 

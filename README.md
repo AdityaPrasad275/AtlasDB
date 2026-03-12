@@ -75,3 +75,19 @@ Setting these measurable goals
 # Durability
 
 - crash recovery under 2 seconds
+
+# Running it 
+
+The project uses a `Makefile` to handle compilation and execution.
+
+### **Quick Start**
+To build and run the test program in one command:
+```bash
+make run
+```
+
+### **Other Commands**
+- **Build only:** `make` (creates the executable in `build/atlasdb`)
+- **Clean up:** `make clean` (removes all build artifacts)
+- **Debug:** `make print` (shows internal Makefile variables)
+
