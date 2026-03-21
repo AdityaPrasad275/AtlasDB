@@ -5,3 +5,4 @@ using page_id_t = int;
 using lsn_t = int;
 using frame_id_t = int;
 using list_iterator = std::list<frame_id_t>::iterator;
+using slot_id_t = int;

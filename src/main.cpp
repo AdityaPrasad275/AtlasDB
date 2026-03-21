@@ -1,102 +1,100 @@
 #include <iostream>
-#include <cassert>
-#include <cstring>
 #include <vector>
-#include "BufferPoolManager.h"
-#include "DiskManager.h"
+#include <string>
+#include <cstring>
+#include <cassert>
+#include "TablePage.h"
+#include "Page.h"
 
-void TestBPM() {
-    const std::string db_file = "test.db";
-    // Start fresh
-    remove(db_file.c_str());
-
-    DiskManager *disk_manager = new DiskManager(db_file);
-    BufferPoolManager *bpm = new BufferPoolManager(3, disk_manager); // Pool size = 3
-
-    page_id_t page_id_temp;
+void testTablePageBasic() {
+    std::cout << "--- Test 1: Basic Insert/Get ---" << std::endl;
     
-    std::cout << "Starting BufferPoolManager Test...\n";
+    // 1. Create a raw Page (4KB)
+    Page page;
+    char* raw_data = page.getData();
+    std::memset(raw_data, 0, Page::PAGE_SIZE);
 
-    // -------------------------------------------------------------------------
-    // TEST 1: newPage and Fetch
-    // -------------------------------------------------------------------------
-    std::cout << "Test 1: newPage and Fetching...\n";
-    auto page0 = bpm->newPage(page_id_temp);
-    assert(page0 != nullptr);
-    assert(page_id_temp == 0);
-    std::strcpy(page0->getData(), "Hello Page 0");
+    // 2. Interpret as TablePage and Init
+    TablePage* tp = reinterpret_cast<TablePage*>(raw_data);
+    tp->init(Page::INVALID_PAGE_ID, 1); // Page ID 1
+
+    // 3. Insert records
+    std::string rec1 = "Hello AtlasDB!";
+    std::string rec2 = "Slotted Page is cool.";
+    std::string rec3 = "Short";
+
+    assert(tp->insertRecord(rec1.c_str(), rec1.length() + 1) == true);
+    assert(tp->insertRecord(rec2.c_str(), rec2.length() + 1) == true);
+    assert(tp->insertRecord(rec3.c_str(), rec3.length() + 1) == true);
+
+    // 4. Verify Records
+    int size;
+    char* data;
+
+    data = tp->getRecord(0, size);
+    assert(data != nullptr);
+    assert(std::string(data) == rec1);
+    assert(size == (int)rec1.length() + 1);
+
+    data = tp->getRecord(1, size);
+    assert(data != nullptr);
+    assert(std::string(data) == rec2);
     
-    auto page1 = bpm->newPage(page_id_temp);
-    assert(page1 != nullptr);
-    assert(page_id_temp == 1);
-    std::strcpy(page1->getData(), "Hello Page 1");
+    data = tp->getRecord(2, size);
+    assert(data != nullptr);
+    assert(std::string(data) == rec3);
 
-    auto page2 = bpm->newPage(page_id_temp);
-    assert(page2 != nullptr);
-    assert(page_id_temp == 2);
-    std::strcpy(page2->getData(), "Hello Page 2");
+    std::cout << "Basic Insert/Get Passed!" << std::endl;
+}
 
-    // -------------------------------------------------------------------------
-    // TEST 2: Buffer Pool Full (Everything is pinned)
-    // -------------------------------------------------------------------------
-    std::cout << "Test 2: Buffer Pool Full (Everything pinned)...\n";
-    page_id_t page_id_3;
-    auto page3 = bpm->newPage(page_id_3);
-    assert(page3 == nullptr); // Should fail because 0, 1, 2 are all pinned (count=1)
-
-    // -------------------------------------------------------------------------
-    // TEST 3: Unpin and Evict (LRU)
-    // -------------------------------------------------------------------------
-    std::cout << "Test 3: Unpin and Evict (LRU)...\n";
-    bpm->unpinPage(0, true); // Unpin page 0, mark as DIRTY
+void testTablePageFull() {
+    std::cout << "\n--- Test 2: Full Page Rejection ---" << std::endl;
     
-    // Now we should be able to get page 3 by evicting page 0
-    page3 = bpm->newPage(page_id_3);
-    assert(page3 != nullptr);
-    assert(page_id_3 == 3);
-    std::strcpy(page3->getData(), "Hello Page 3");
+    Page page;
+    TablePage* tp = reinterpret_cast<TablePage*>(page.getData());
+    tp->init(Page::INVALID_PAGE_ID, 2);
 
-    // -------------------------------------------------------------------------
-    // TEST 4: Persistence (Did the evicted Page 0 make it to disk?)
-    // -------------------------------------------------------------------------
-    std::cout << "Test 4: Persistence (Reload evicted page)...\n";
-    bpm->unpinPage(1, false); 
-    bpm->unpinPage(2, false);
-    bpm->unpinPage(3, false);
+    // Each record is 100 bytes. 
+    // Header is 20 bytes. Each slot is 8 bytes.
+    // Total space for data+slots is roughly 4096 - 20 = 4076.
+    // Each insert takes 100 (data) + 8 (slot) = 108 bytes.
+    // 4076 / 108 = ~37 records.
 
-    // Fetch Page 0 back from disk
-    auto page0_back = bpm->fetchPage(0);
-    assert(page0_back != nullptr);
-    assert(std::strcmp(page0_back->getData(), "Hello Page 0") == 0);
-    
-    // -------------------------------------------------------------------------
-    // TEST 5: Multiple Pins
-    // -------------------------------------------------------------------------
-    std::cout << "Test 5: Multiple Pins...\n";
-    auto page0_again = bpm->fetchPage(0);
-    assert(page0_again == page0_back);
-    // Unpin once
-    bpm->unpinPage(0, false);
-    // Should still NOT be in replacer because pin_count is 1
-    // Let's try to evict it by pinning others
-    bpm->fetchPage(1);
-    bpm->fetchPage(2);
-    // Pool is full: Page 0 (pin=1), Page 1 (pin=1), Page 2 (pin=1)
-    page_id_t dummy;
-    assert(bpm->newPage(dummy) == nullptr);
+    char large_data[100];
+    std::memset(large_data, 'A', 100);
 
-    std::cout << "\n--- ALL BufferPoolManager Tests PASSED! ---\n";
+    int count = 0;
+    while (tp->insertRecord(large_data, 100)) {
+        count++;
+    }
 
-    delete bpm;
-    delete disk_manager;
-    remove(db_file.c_str());
+    std::cout << "Inserted " << count << " records of 100 bytes each before page was full." << std::endl;
+    assert(count > 30 && count < 40);
+
+    // Verify last one fails
+    assert(tp->insertRecord(large_data, 100) == false);
+
+    // Verify first and last inserted are still there
+    int size;
+    char* data = tp->getRecord(0, size);
+    assert(data != nullptr);
+    assert(size == 100);
+    assert(data[0] == 'A');
+
+    data = tp->getRecord(count - 1, size);
+    assert(data != nullptr);
+    assert(size == 100);
+
+    std::cout << "Full Page Rejection Passed!" << std::endl;
 }
 
 int main() {
     try {
-        TestBPM();
+        testTablePageBasic();
+        testTablePageFull();
+        std::cout << "\nALL TABLEPAGE TESTS PASSED!" << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "Test failed with exception: " << e.what() << "\n";
+        std::cerr << "Test failed with exception: " << e.what() << std::endl;
         return 1;
     }
     return 0;
