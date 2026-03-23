@@ -50,7 +50,7 @@ void testTablePageUpdateDelete() {
     tp->insertRecord(r2.c_str(), r2.length() + 1);
 
     // 1. Delete Record 0
-    assert(tp->delteRecord(0) == true);
+    assert(tp->deleteRecord(0) == true);
     int size;
     assert(tp->getRecord(0, size) == nullptr);
     assert(tp->getRecord(1, size) != nullptr);

@@ -1,6 +1,7 @@
 #include "type.h"
 #include "BufferPoolManager.h"
 #include "Page.h"
+#include "TablePage.h"
 #include<vector>
 
 class Table {

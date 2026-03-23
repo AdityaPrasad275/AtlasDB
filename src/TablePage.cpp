@@ -70,7 +70,7 @@ char* TablePage::getRecord(slot_id_t slot_id, int& record_size) {
     return reinterpret_cast<char*>(this) + slot->offset;
 }
 
-bool TablePage::updateRecord(slot_id_t slot_id, char* data, int size) {
+bool TablePage::updateRecord(slot_id_t slot_id, const char* data, int size) {
     if(slot_id >= _slot_count)
         return false;
 
