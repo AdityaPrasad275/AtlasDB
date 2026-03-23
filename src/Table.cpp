@@ -39,11 +39,75 @@ Table::Table(BufferPoolManager* bpm, page_id_t first_page_id)
 }
 
 bool Table::insertRecord(const char* data, int size, RID& rid) {
+    // 1. fetch current page and typecase
+    page_id_t old_page_id = _last_page_id;
+    Page* curr_page = _bpm->fetchPage(old_page_id);
 
+    if (curr_page == nullptr)
+        return false;
+
+    TablePage* curr_tp = reinterpret_cast<TablePage*>(curr_page->getData());
+
+    // 2. try inserting here
+    if (curr_tp->insertRecord(data, size)) {
+        _updateRIDandUnpinPage(rid, curr_tp, old_page_id);
+        return true;
+    }
+
+    // 3. insert didnt work, new page required
+    page_id_t new_page_id;
+    Page* new_page = _bpm->newPage(new_page_id);
+
+    if (new_page == nullptr)
+        return false;
+
+    //4. link them and unpin old page
+    curr_tp->setNextPageId(new_page_id);
+    _bpm->unpinPage(old_page_id, true);
+
+    TablePage* new_tp = reinterpret_cast<TablePage*>(new_page->getData());
+    new_tp->init(old_page_id, new_page_id);
+
+    if (new_tp->insertRecord(data, size)) {
+        _last_page_id = new_page_id;
+
+        _updateRIDandUnpinPage(rid, new_tp, new_page_id);
+
+        return true;
+    }
+    
+    // something has gone wrong , maybe we should throw an error
+    return false;
+}
+
+void Table::_updateRIDandUnpinPage(RID& rid, TablePage* tp, page_id_t page_id) {
+    rid.slot_id = tp->getSlotCount() - 1; // new page added and hence last slot
+    rid.page_id = page_id;
+    _bpm->unpinPage(page_id, true);
 }
    
 bool Table::getRecord(const RID& rid, std::vector<char>& data) {
+    // 1. fetch page  and cast to  table page
+    Page* page = _bpm->fetchPage(rid.page_id);
+    if (page == nullptr)
+        return false;
 
+    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
+
+    // 2. get record 
+    int record_size;
+    char* record_ptr = tp->getRecord(rid.slot_id, record_size);
+
+    // 3. copy to data
+    bool success = false;
+    if (record_ptr != nullptr) {
+        data.assign(record_ptr, record_ptr + record_size);
+        success = true;
+    }
+
+    _bpm->unpinPage(rid.page_id, false); // unpin and mark as not dirty as we jsut read
+    
+    return success;
 }
     
 bool Table::updateRecord(const char* data, int size, const RID& rid) {

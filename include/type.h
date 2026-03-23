@@ -1,3 +1,4 @@
+#pragma once
 #include<list>
 
 // using a typedef (makes it easy to switch later to say 64 bit int)

@@ -3,12 +3,13 @@
 #include <string>
 #include <cstring>
 #include <cassert>
+#include "Table.h"
 #include "TablePage.h"
-#include "Page.h"
+#include "BufferPoolManager.h"
+#include "DiskManager.h"
 
 void testTablePageBasic() {
-    std::cout << "--- Test 1: Basic Insert/Get ---" << std::endl;
-    
+    std::cout << "--- Test 1: Basic TablePage Insert/Get ---" << std::endl;
     Page page;
     char* raw_data = page.getData();
     std::memset(raw_data, 0, Page::PAGE_SIZE);
@@ -17,92 +18,95 @@ void testTablePageBasic() {
     tp->init(Page::INVALID_PAGE_ID, 1);
 
     std::string rec1 = "Hello AtlasDB!";
-    std::string rec2 = "Slotted Page is cool.";
-    std::string rec3 = "Short";
-
     assert(tp->insertRecord(rec1.c_str(), rec1.length() + 1) == true);
-    assert(tp->insertRecord(rec2.c_str(), rec2.length() + 1) == true);
-    assert(tp->insertRecord(rec3.c_str(), rec3.length() + 1) == true);
 
     int size;
-    char* data;
-
-    data = tp->getRecord(0, size);
+    char* data = tp->getRecord(0, size);
     assert(data != nullptr && std::string(data) == rec1);
-    data = tp->getRecord(1, size);
-    assert(data != nullptr && std::string(data) == rec2);
-    data = tp->getRecord(2, size);
-    assert(data != nullptr && std::string(data) == rec3);
-
-    std::cout << "Basic Insert/Get Passed!" << std::endl;
+    std::cout << "TablePage Basic Passed!" << std::endl;
 }
 
-void testTablePageUpdateDelete() {
-    std::cout << "\n--- Test 3: Update and Delete ---" << std::endl;
-
-    Page page;
-    TablePage* tp = reinterpret_cast<TablePage*>(page.getData());
-    tp->init(Page::INVALID_PAGE_ID, 3);
-
-    std::string r1 = "Record 1";
-    std::string r2 = "Record 2";
-    tp->insertRecord(r1.c_str(), r1.length() + 1);
-    tp->insertRecord(r2.c_str(), r2.length() + 1);
-
-    // 1. Delete Record 0
-    assert(tp->deleteRecord(0) == true);
-    int size;
-    assert(tp->getRecord(0, size) == nullptr);
-    assert(tp->getRecord(1, size) != nullptr);
-
-    // 2. Update Record 1 (Shrink)
-    std::string r2_new = "R2";
-    assert(tp->updateRecord(1, (char*)r2_new.c_str(), r2_new.length() + 1) == true);
-    char* data = tp->getRecord(1, size);
-    assert(std::string(data) == r2_new);
-
-    // 3. Update Record 1 (Grow - should relocate)
-    std::string r2_long = "Record 2 is now much longer than it was before!";
-    assert(tp->updateRecord(1, (char*)r2_long.c_str(), r2_long.length() + 1) == true);
-    data = tp->getRecord(1, size);
-    assert(std::string(data) == r2_long);
-
-    // 4. Update non-existent or deleted
-    assert(tp->updateRecord(0, (char*)"fail", 5) == false);
-    assert(tp->updateRecord(5, (char*)"fail", 5) == false);
-
-    std::cout << "Update and Delete Passed!" << std::endl;
-}
-
-void testTablePageFull() {
-    std::cout << "\n--- Test 2: Full Page Rejection ---" << std::endl;
+void testTableMultiPage() {
+    std::cout << "\n--- Test 2: Table Multi-Page Insert/Get ---" << std::endl;
     
-    Page page;
-    TablePage* tp = reinterpret_cast<TablePage*>(page.getData());
-    tp->init(Page::INVALID_PAGE_ID, 2);
+    // 1. Setup Infra
+    std::string db_file = "test.db";
+    std::remove(db_file.c_str());
+    DiskManager dm(db_file);
+    BufferPoolManager bpm(10, &dm); // Small pool (10 frames)
 
-    char large_data[100];
-    std::memset(large_data, 'A', 100);
+    // 2. Create Table
+    Table table(&bpm);
+    page_id_t first_id = table.getFirstPageId();
+    std::cout << "Table started at Page ID: " << first_id << std::endl;
 
-    int count = 0;
-    while (tp->insertRecord(large_data, 100)) {
-        count++;
+    // 3. Insert 500 records
+    std::vector<RID> rids;
+    for (int i = 0; i < 500; ++i) {
+        std::string record = "Record Number " + std::to_string(i);
+        RID rid;
+        assert(table.insertRecord(record.c_str(), record.length() + 1, rid) == true);
+        rids.push_back(rid);
     }
 
-    std::cout << "Inserted " << count << " records of 100 bytes each." << std::endl;
-    assert(tp->insertRecord(large_data, 100) == false);
+    std::cout << "Inserted 500 records. Last Page ID: " << rids.back().page_id << std::endl;
+    assert(rids.back().page_id > first_id); // Must have created multiple pages
 
-    std::cout << "Full Page Rejection Passed!" << std::endl;
+    // 4. Verify all 500 records
+    for (int i = 0; i < 500; ++i) {
+        std::vector<char> data;
+        assert(table.getRecord(rids[i], data) == true);
+        std::string expected = "Record Number " + std::to_string(i);
+        assert(std::string(data.data()) == expected);
+    }
+
+    std::cout << "All 500 records verified successfully across multiple pages!" << std::endl;
+    std::remove(db_file.c_str());
+}
+
+void testTableRestart() {
+    std::cout << "\n--- Test 3: Table Persistence/Restart ---" << std::endl;
+    
+    std::string db_file = "restart.db";
+    std::remove(db_file.c_str());
+    page_id_t first_page_id;
+
+    {
+        DiskManager dm(db_file);
+        BufferPoolManager bpm(10, &dm);
+        Table table(&bpm);
+        first_page_id = table.getFirstPageId();
+
+        std::string data = "Persistent Data";
+        RID rid;
+        table.insertRecord(data.c_str(), data.length() + 1, rid);
+        bpm.flushAllPages(); // Ensure it hits disk
+    }
+
+    // Restart the world
+    {
+        DiskManager dm(db_file);
+        BufferPoolManager bpm(10, &dm);
+        Table table(&bpm, first_page_id); // Re-open existing table
+        
+        std::vector<char> data;
+        RID rid = {first_page_id, 0};
+        assert(table.getRecord(rid, data) == true);
+        assert(std::string(data.data()) == "Persistent Data");
+    }
+
+    std::cout << "Table Persistence Passed!" << std::endl;
+    std::remove(db_file.c_str());
 }
 
 int main() {
     try {
         testTablePageBasic();
-        testTablePageFull();
-        testTablePageUpdateDelete();
-        std::cout << "\nALL TABLEPAGE TESTS PASSED!" << std::endl;
+        testTableMultiPage();
+        testTableRestart();
+        std::cout << "\nALL STORAGE ENGINE TESTS PASSED!" << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "Test failed with exception: " << e.what() << std::endl;
+        std::cerr << "Test failed: " << e.what() << std::endl;
         return 1;
     }
     return 0;

@@ -1,3 +1,4 @@
+#pragma once
 #include "type.h"
 #include "BufferPoolManager.h"
 #include "Page.h"
@@ -9,6 +10,8 @@ private:
     BufferPoolManager* _bpm;
     page_id_t _first_page_id;
     page_id_t _last_page_id;
+
+    void _updateRIDandUnpinPage(RID& rid, TablePage* tp, page_id_t page_id);
 
 public:
 
