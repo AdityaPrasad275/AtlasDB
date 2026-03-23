@@ -21,7 +21,7 @@ public:
 
     bool getRecord(const RID& rid, std::vector<char>& data); // populates data with copy of actual data
     
-    bool updateRecord(const char* data, int size, const RID& rid);
+    bool updateRecord(const char* data, int size, RID& rid);
 
     bool deleteRecord(const RID& rid);
 

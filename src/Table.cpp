@@ -70,9 +70,7 @@ bool Table::insertRecord(const char* data, int size, RID& rid) {
 
     if (new_tp->insertRecord(data, size)) {
         _last_page_id = new_page_id;
-
         _updateRIDandUnpinPage(rid, new_tp, new_page_id);
-
         return true;
     }
     
@@ -110,10 +108,38 @@ bool Table::getRecord(const RID& rid, std::vector<char>& data) {
     return success;
 }
     
-bool Table::updateRecord(const char* data, int size, const RID& rid) {
+bool Table::updateRecord(const char* data, int size, RID& rid) {
+    // 1. fetch page
+    Page* page = _bpm->fetchPage(rid.page_id);
+    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
 
+    if (tp->updateRecord(rid.slot_id, data, size)) {
+        _bpm->unpinPage(rid.page_id, true);
+        return true;
+    }    
+
+    // there wasnt enough space so we'll create new record 
+
+    tp->deleteRecord(rid.slot_id); //delete old record
+    _bpm->unpinPage(rid.page_id, true); //unpin page
+
+    RID new_rid;
+    if (insertRecord(data, size, new_rid) == false) 
+        return false; //insert new record
+    rid = new_rid;
+
+    return true;
 }
 
 bool Table::deleteRecord(const RID& rid) {
+    // 1. fetch page
+    Page* page = _bpm->fetchPage(rid.page_id);
+    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
 
+    bool res = tp->deleteRecord(rid.slot_id);
+
+    _bpm->unpinPage(rid.page_id, true);
+
+    return res;
 }
+
