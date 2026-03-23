@@ -1,13 +1,7 @@
 #pragma once 
 
 #include "type.h"
-#include "Page.h" // for PAGE_SIZE and INVALID_PAGE_ID
- 
-struct Slot {
-    int offset; 
-    int size;
-    // we represent a deleted record by putting offset = -1
-};
+#include "Page.h" // for PAGE_SIZE and INVALID_PAGE_ID 
 
 class TablePage {
 public:
@@ -19,7 +13,7 @@ public:
 
     bool updateRecord(slot_id_t slot_id, char* data, int size); 
 
-    bool delteRecord(slot_id_t slot_id);  
+    bool deleteRecord(slot_id_t slot_id);  
     
 private:
     // Byte 0-3 (4 bytes) (assumgin page_id_t is int, 4 bytes long)

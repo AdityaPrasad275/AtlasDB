@@ -104,7 +104,7 @@ bool TablePage::updateRecord(slot_id_t slot_id, char* data, int size) {
     return true;
 }   
 
-bool TablePage::delteRecord(slot_id_t slot_id) {
+bool TablePage::deleteRecord(slot_id_t slot_id) {
     if (slot_id >= _slot_count)
         return false;
     

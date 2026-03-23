@@ -6,3 +6,18 @@ using lsn_t = int;
 using frame_id_t = int;
 using list_iterator = std::list<frame_id_t>::iterator;
 using slot_id_t = int;
+
+struct RID {
+    page_id_t page_id;
+    slot_id_t slot_id;
+
+    bool operator==(const RID& other) const {
+        return page_id == other.page_id and slot_id == other.slot_id;
+    }
+};
+
+struct Slot {
+    int offset; 
+    int size;
+    // we represent a deleted record by putting offset = -1
+};
