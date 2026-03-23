@@ -1,6 +1,7 @@
 #include "type.h"
 #include "BufferPoolManager.h"
 #include "Page.h"
+#include<vector>
 
 class Table {
 private:
@@ -12,13 +13,13 @@ public:
 
     Table(BufferPoolManager* bpm, page_id_t first_page_id = Page::INVALID_PAGE_ID);
 
-    bool insertRecord(char* data, int size, RID* rid); 
-    // we're alreayd taking in RID, should we return in case of new page making or just sort of remap input RID poitner to new one
+    bool insertRecord(const char* data, int size, RID& rid);  // populates rid with new record id
 
-    char* getRecord(RID* rid);
+    bool getRecord(const RID& rid, std::vector<char>& data); // populates data with copy of actual data
     
-    bool updateRecord(char* data, int size, RID* rid);
-    // same signature as insertrecord ?
+    bool updateRecord(const char* data, int size, const RID& rid);
 
-    bool deleteRecord(RID* rid);
+    bool deleteRecord(const RID& rid);
+
+    page_id_t getFirstPageId() { return _first_page_id; };
 };
