@@ -17,7 +17,7 @@ public:
     
     char* getRecord(slot_id_t slot_id, int& record_size); //returns char pointer, and also populates input argument with size of record to read 
 
-    char* updateRecord(slot_id_t slot_id, char* data); 
+    bool updateRecord(slot_id_t slot_id, char* data, int size); 
 
     bool delteRecord(slot_id_t slot_id);  
     

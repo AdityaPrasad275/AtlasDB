@@ -69,3 +69,48 @@ char* TablePage::getRecord(slot_id_t slot_id, int& record_size) {
 
     return reinterpret_cast<char*>(this) + slot->offset;
 }
+
+bool TablePage::updateRecord(slot_id_t slot_id, char* data, int size) {
+    if(slot_id >= _slot_count)
+        return false;
+
+    // get the slot
+    Slot* slot = _getSlot(slot_id);
+
+    if (slot->offset == -1)
+        return false; // cant update a deleted record
+
+    // new data is smaller than older one, can be directly replaced
+    if (size <= slot->size) {
+        std::memcpy(reinterpret_cast<char*>(this) + slot->offset, data, size);
+        slot->size = size;
+
+        return true;
+    }
+
+    // new data is bigger, need to checck remainging free space
+    int curr_slots_end = sizeof(TablePage) + sizeof(Slot) * _slot_count;
+    int availaible_space = _free_space_pointer - curr_slots_end;
+
+    if(availaible_space < size)
+        return false; // dont have enough space sorry
+    
+    _free_space_pointer -= size;
+    std::memcpy(reinterpret_cast<char*>(this) + _free_space_pointer, data, size);
+
+    slot->offset = _free_space_pointer;
+    slot->size = size;
+
+    return true;
+}   
+
+bool TablePage::delteRecord(slot_id_t slot_id) {
+    if (slot_id >= _slot_count)
+        return false;
+    
+    Slot* slot = _getSlot(slot_id); 
+
+    slot->offset = -1; // tombstone approach
+
+    return true;
+}
