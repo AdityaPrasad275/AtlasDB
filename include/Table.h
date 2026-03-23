@@ -12,6 +12,7 @@ private:
     page_id_t _last_page_id;
 
     void _updateRIDandUnpinPage(RID& rid, TablePage* tp, page_id_t page_id);
+    TablePage* _fetchAndCast(page_id_t page_id);
 
 public:
 

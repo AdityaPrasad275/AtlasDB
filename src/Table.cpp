@@ -23,12 +23,15 @@ Table::Table(BufferPoolManager* bpm, page_id_t first_page_id)
         _last_page_id = _first_page_id;
 
         while (true) {
-            // get page
-            Page* page = _bpm->fetchPage(_last_page_id);
-            TablePage* tp = reinterpret_cast<TablePage*>(page->getData()); //cast its data
+            TablePage* tp = _fetchAndCast(_last_page_id);
+            if (tp == nullptr) { // Should not happen in a well-formed DB
+                // This indicates a broken chain or a page that couldn't be fetched.
+                // For robustness, we should probably stop here.
+                break;
+            }
 
             page_id_t next_page_id = tp->getNextPageId();
-            _bpm->unpinPage(_last_page_id, false); // havent done anything so dont need to mark dirty
+            _bpm->unpinPage(_last_page_id, false); 
 
             if(next_page_id == Page::INVALID_PAGE_ID) {
                 break;
@@ -39,32 +42,34 @@ Table::Table(BufferPoolManager* bpm, page_id_t first_page_id)
 }
 
 bool Table::insertRecord(const char* data, int size, RID& rid) {
-    // 1. fetch current page and typecase
     page_id_t old_page_id = _last_page_id;
-    Page* curr_page = _bpm->fetchPage(old_page_id);
+    TablePage* curr_tp = _fetchAndCast(old_page_id);
 
-    if (curr_page == nullptr)
+    if (curr_tp == nullptr) {
         return false;
+    }
 
-    TablePage* curr_tp = reinterpret_cast<TablePage*>(curr_page->getData());
-
-    // 2. try inserting here
+    // try inserting on the current last page
     if (curr_tp->insertRecord(data, size)) {
         _updateRIDandUnpinPage(rid, curr_tp, old_page_id);
         return true;
     }
 
-    // 3. insert didnt work, new page required
+    // The current page is full, we need a new one.
     page_id_t new_page_id;
     Page* new_page = _bpm->newPage(new_page_id);
 
-    if (new_page == nullptr)
+    if (new_page == nullptr) {
+        // Must unpin the old page before returning
+        _bpm->unpinPage(old_page_id, false);
         return false;
+    }
 
-    //4. link them and unpin old page
+    // Link the old page to the new page
     curr_tp->setNextPageId(new_page_id);
-    _bpm->unpinPage(old_page_id, true);
+    _bpm->unpinPage(old_page_id, true); // unpin old, marking it dirty
 
+    // Initialize the new page
     TablePage* new_tp = reinterpret_cast<TablePage*>(new_page->getData());
     new_tp->init(old_page_id, new_page_id);
 
@@ -74,7 +79,9 @@ bool Table::insertRecord(const char* data, int size, RID& rid) {
         return true;
     }
     
-    // something has gone wrong , maybe we should throw an error
+    // This should not happen (new page can't fit the record).
+    // Unpin both pages to prevent leaks.
+    _bpm->unpinPage(new_page_id, false);
     return false;
 }
 
@@ -83,14 +90,20 @@ void Table::_updateRIDandUnpinPage(RID& rid, TablePage* tp, page_id_t page_id) {
     rid.page_id = page_id;
     _bpm->unpinPage(page_id, true);
 }
+
+TablePage* Table::_fetchAndCast(page_id_t page_id) {
+    Page* page = _bpm->fetchPage(page_id);
+    if (page == nullptr) {
+        return nullptr;
+    }
+    return reinterpret_cast<TablePage*>(page->getData());
+}
    
 bool Table::getRecord(const RID& rid, std::vector<char>& data) {
-    // 1. fetch page  and cast to  table page
-    Page* page = _bpm->fetchPage(rid.page_id);
-    if (page == nullptr)
+    TablePage* tp = _fetchAndCast(rid.page_id);
+    if (tp == nullptr) {
         return false;
-
-    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
+    }
 
     // 2. get record 
     int record_size;
@@ -109,9 +122,10 @@ bool Table::getRecord(const RID& rid, std::vector<char>& data) {
 }
     
 bool Table::updateRecord(const char* data, int size, RID& rid) {
-    // 1. fetch page
-    Page* page = _bpm->fetchPage(rid.page_id);
-    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
+    TablePage* tp = _fetchAndCast(rid.page_id);
+    if (tp == nullptr) {
+        return false;
+    }
 
     if (tp->updateRecord(rid.slot_id, data, size)) {
         _bpm->unpinPage(rid.page_id, true);
@@ -132,9 +146,10 @@ bool Table::updateRecord(const char* data, int size, RID& rid) {
 }
 
 bool Table::deleteRecord(const RID& rid) {
-    // 1. fetch page
-    Page* page = _bpm->fetchPage(rid.page_id);
-    TablePage* tp = reinterpret_cast<TablePage*>(page->getData());
+    TablePage* tp = _fetchAndCast(rid.page_id);
+    if (tp == nullptr) {
+        return false;
+    }
 
     bool res = tp->deleteRecord(rid.slot_id);
 
