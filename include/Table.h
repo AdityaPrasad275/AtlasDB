@@ -17,6 +17,7 @@ private:
 public:
 
     Table(BufferPoolManager* bpm, page_id_t first_page_id = Page::INVALID_PAGE_ID);
+    // ~Table();
 
     bool insertRecord(const char* data, int size, RID& rid);  // populates rid with new record id
 

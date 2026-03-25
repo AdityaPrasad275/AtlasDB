@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500">
+<rect width="100%" height="100%" fill="#fffdf7"/>
+<text x="450.0" y="20" text-anchor="middle" font-size="18" font-family="sans-serif">Insert and Reopen Throughput vs Dataset Size</text>
+<text x="450.0" y="490" text-anchor="middle" font-size="12" font-family="sans-serif">Dataset Size (log10 scale)</text>
+<text x="20" y="250.0" transform="rotate(-90 20,250.0)" text-anchor="middle" font-size="12" font-family="sans-serif">Throughput (ops/sec)</text>
+<line x1="80" y1="30" x2="80" y2="430" stroke="#222" stroke-width="1"/>
+<line x1="80" y1="430" x2="860" y2="430" stroke="#222" stroke-width="1"/>
+<line x1="80.0" y1="430" x2="80.0" y2="435" stroke="#777"/>
+<text x="80.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">10000</text>
+<line x1="368.99913624341673" y1="430" x2="368.99913624341673" y2="435" stroke="#777"/>
+<text x="368.99913624341673" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">100000</text>
+<line x1="484.00345502633326" y1="430" x2="484.00345502633326" y2="435" stroke="#777"/>
+<text x="484.00345502633326" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">250000</text>
+<line x1="657.9982724868335" y1="430" x2="657.9982724868335" y2="435" stroke="#777"/>
+<text x="657.9982724868335" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">1000000</text>
+<line x1="860.0" y1="430" x2="860.0" y2="435" stroke="#777"/>
+<text x="860.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">5000000</text>
+<line x1="75" y1="430.0" x2="860" y2="430.0" stroke="#eee"/>
+<text x="70" y="434.0" text-anchor="end" font-size="11" font-family="sans-serif">513142.75</text>
+<line x1="75" y1="350.0" x2="860" y2="350.0" stroke="#eee"/>
+<text x="70" y="354.0" text-anchor="end" font-size="11" font-family="sans-serif">673097.53</text>
+<line x1="75" y1="270.0" x2="860" y2="270.0" stroke="#eee"/>
+<text x="70" y="274.0" text-anchor="end" font-size="11" font-family="sans-serif">833052.30</text>
+<line x1="75" y1="190.0" x2="860" y2="190.0" stroke="#eee"/>
+<text x="70" y="194.0" text-anchor="end" font-size="11" font-family="sans-serif">993007.08</text>
+<line x1="75" y1="110.0" x2="860" y2="110.0" stroke="#eee"/>
+<text x="70" y="114.0" text-anchor="end" font-size="11" font-family="sans-serif">1152961.86</text>
+<line x1="75" y1="30.0" x2="860" y2="30.0" stroke="#eee"/>
+<text x="70" y="34.0" text-anchor="end" font-size="11" font-family="sans-serif">1312916.64</text>
+<circle cx="80.00" cy="430.00" r="4" fill="#1b4965"/>
+<circle cx="369.00" cy="156.01" r="4" fill="#1b4965"/>
+<circle cx="369.00" cy="81.87" r="4" fill="#1b4965"/>
+<circle cx="484.00" cy="30.00" r="4" fill="#1b4965"/>
+<circle cx="658.00" cy="47.95" r="4" fill="#1b4965"/>
+<circle cx="860.00" cy="69.39" r="4" fill="#1b4965"/>
+<path d="M 80.00 430.00 L 369.00 156.01 L 369.00 81.87 L 484.00 30.00 L 658.00 47.95 L 860.00 69.39" fill="none" stroke="#1b4965" stroke-width="2"/>
+<line x1="680" y1="45" x2="698" y2="45" stroke="#1b4965" stroke-width="2"/>
+<text x="704" y="49" font-size="12" font-family="sans-serif">heap_insert_scale</text>
+<circle cx="369.00" cy="218.27" r="4" fill="#ca6702"/>
+<circle cx="658.00" cy="62.25" r="4" fill="#ca6702"/>
+<circle cx="860.00" cy="74.50" r="4" fill="#ca6702"/>
+<path d="M 369.00 218.27 L 658.00 62.25 L 860.00 74.50" fill="none" stroke="#ca6702" stroke-width="2"/>
+<line x1="680" y1="63" x2="698" y2="63" stroke="#ca6702" stroke-width="2"/>
+<text x="704" y="67" font-size="12" font-family="sans-serif">heap_reopen_validation</text>
+</svg>

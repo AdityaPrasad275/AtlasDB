@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500">
+<rect width="100%" height="100%" fill="#fffdf7"/>
+<text x="450.0" y="20" text-anchor="middle" font-size="18" font-family="sans-serif">Mixed Workload Average Latency</text>
+<text x="450.0" y="490" text-anchor="middle" font-size="12" font-family="sans-serif">Dataset Size (log10 scale)</text>
+<text x="20" y="250.0" transform="rotate(-90 20,250.0)" text-anchor="middle" font-size="12" font-family="sans-serif">Average latency (us)</text>
+<line x1="80" y1="30" x2="80" y2="430" stroke="#222" stroke-width="1"/>
+<line x1="80" y1="430" x2="860" y2="430" stroke="#222" stroke-width="1"/>
+<line x1="80.0" y1="430" x2="80.0" y2="435" stroke="#777"/>
+<text x="80.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">50000</text>
+<line x1="539.1016898528676" y1="430" x2="539.1016898528676" y2="435" stroke="#777"/>
+<text x="539.1016898528676" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">500000</text>
+<line x1="860.0" y1="430" x2="860.0" y2="435" stroke="#777"/>
+<text x="860.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">2500000</text>
+<line x1="75" y1="430.0" x2="860" y2="430.0" stroke="#eee"/>
+<text x="70" y="434.0" text-anchor="end" font-size="11" font-family="sans-serif">94.21</text>
+<line x1="75" y1="350.0" x2="860" y2="350.0" stroke="#eee"/>
+<text x="70" y="354.0" text-anchor="end" font-size="11" font-family="sans-serif">1238.94</text>
+<line x1="75" y1="270.0" x2="860" y2="270.0" stroke="#eee"/>
+<text x="70" y="274.0" text-anchor="end" font-size="11" font-family="sans-serif">2383.67</text>
+<line x1="75" y1="189.99999999999997" x2="860" y2="189.99999999999997" stroke="#eee"/>
+<text x="70" y="193.99999999999997" text-anchor="end" font-size="11" font-family="sans-serif">3528.40</text>
+<line x1="75" y1="110.0" x2="860" y2="110.0" stroke="#eee"/>
+<text x="70" y="114.0" text-anchor="end" font-size="11" font-family="sans-serif">4673.13</text>
+<line x1="75" y1="30.0" x2="860" y2="30.0" stroke="#eee"/>
+<text x="70" y="34.0" text-anchor="end" font-size="11" font-family="sans-serif">5817.86</text>
+<circle cx="80.00" cy="430.00" r="4" fill="#1b4965"/>
+<circle cx="539.10" cy="368.23" r="4" fill="#1b4965"/>
+<circle cx="860.00" cy="30.00" r="4" fill="#1b4965"/>
+<path d="M 80.00 430.00 L 539.10 368.23 L 860.00 30.00" fill="none" stroke="#1b4965" stroke-width="2"/>
+<line x1="680" y1="45" x2="698" y2="45" stroke="#1b4965" stroke-width="2"/>
+<text x="704" y="49" font-size="12" font-family="sans-serif">heap_mixed_workload</text>
+</svg>

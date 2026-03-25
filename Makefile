@@ -33,7 +33,19 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 # Run the database
 run: all
 	@mkdir -p $(LOG_DIR)
-	./$(TARGET)
+	./$(TARGET) --profile=quick
+
+bench-dev: all
+	@mkdir -p $(LOG_DIR)
+	./$(TARGET) --profile=dev
+
+bench-large: all
+	@mkdir -p $(LOG_DIR)
+	./$(TARGET) --profile=large
+
+bench-stress: all
+	@mkdir -p $(LOG_DIR)
+	./$(TARGET) --profile=stress
 
 # Clean build artifacts
 clean:
@@ -45,4 +57,4 @@ print:
 	@echo "OBJS: $(OBJS)"
 	@echo "TARGET: $(TARGET)"
 
-.PHONY: all clean run print
+.PHONY: all clean run bench-dev bench-large bench-stress print

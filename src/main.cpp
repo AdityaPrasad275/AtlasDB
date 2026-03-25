@@ -1,112 +1,142 @@
 #include <iostream>
-#include <vector>
+#include <stdexcept>
 #include <string>
-#include <cstring>
-#include <cassert>
-#include "Table.h"
-#include "TablePage.h"
-#include "BufferPoolManager.h"
-#include "DiskManager.h"
 
-void testTablePageBasic() {
-    std::cout << "--- Test 1: Basic TablePage Insert/Get ---" << std::endl;
-    Page page;
-    char* raw_data = page.getData();
-    std::memset(raw_data, 0, Page::PAGE_SIZE);
+#include "Benchmark.h"
 
-    TablePage* tp = reinterpret_cast<TablePage*>(raw_data);
-    tp->init(Page::INVALID_PAGE_ID, 1);
-
-    std::string rec1 = "Hello AtlasDB!";
-    assert(tp->insertRecord(rec1.c_str(), rec1.length() + 1) == true);
-
-    int size;
-    char* data = tp->getRecord(0, size);
-    assert(data != nullptr && std::string(data) == rec1);
-    std::cout << "TablePage Basic Passed!" << std::endl;
-}
-
-void testTableMultiPage() {
-    std::cout << "\n--- Test 2: Table Multi-Page Insert/Get ---" << std::endl;
-    
-    std::string db_file = "test.db";
-    std::remove(db_file.c_str());
-    DiskManager dm(db_file);
-    BufferPoolManager bpm(10, &dm);
-
-    Table table(&bpm);
-    page_id_t first_id = table.getFirstPageId();
-    std::cout << "Table started at Page ID: " << first_id << std::endl;
-
-    std::vector<RID> rids;
-    for (int i = 0; i < 500; ++i) {
-        std::string record = "Record Number " + std::to_string(i);
-        RID rid;
-        assert(table.insertRecord(record.c_str(), record.length() + 1, rid) == true);
-        rids.push_back(rid);
+namespace {
+void applyProfile(BenchmarkRunner::Config& config, const std::string& profile) {
+    if (profile == "quick") {
+        config.small_count = 10000;
+        config.medium_count = 100000;
+        config.pressure_count = 100000;
+        config.small_buffer_pool_pages = 64;
+        config.medium_buffer_pool_pages = 256;
+        config.pressure_buffer_pool_pages = 32;
+        config.random_read_ops = 20000;
+        config.mixed_workload_ops = 30000;
+        return;
     }
 
-    std::cout << "Inserted 500 records. Last Page ID: " << rids.back().page_id << std::endl;
-    assert(rids.back().page_id > first_id);
-
-    for (int i = 0; i < 500; ++i) {
-        std::vector<char> data;
-        assert(table.getRecord(rids[i], data) == true);
-        std::string expected = "Record Number " + std::to_string(i);
-        assert(std::string(data.data()) == expected);
+    if (profile == "dev") {
+        config.small_count = 100000;
+        config.medium_count = 1000000;
+        config.pressure_count = 1000000;
+        config.small_buffer_pool_pages = 128;
+        config.medium_buffer_pool_pages = 512;
+        config.pressure_buffer_pool_pages = 64;
+        config.random_read_ops = 100000;
+        config.mixed_workload_ops = 100000;
+        return;
     }
 
-    std::cout << "All 500 records verified successfully across multiple pages!" << std::endl;
-    std::remove(db_file.c_str());
+    if (profile == "large") {
+        config.small_count = 250000;
+        config.medium_count = 5000000;
+        config.pressure_count = 5000000;
+        config.small_buffer_pool_pages = 256;
+        config.medium_buffer_pool_pages = 1024;
+        config.pressure_buffer_pool_pages = 64;
+        config.random_read_ops = 250000;
+        config.mixed_workload_ops = 250000;
+        return;
+    }
+
+    if (profile == "stress") {
+        config.small_count = 500000;
+        config.medium_count = 10000000;
+        config.pressure_count = 10000000;
+        config.small_buffer_pool_pages = 256;
+        config.medium_buffer_pool_pages = 2048;
+        config.pressure_buffer_pool_pages = 64;
+        config.random_read_ops = 500000;
+        config.mixed_workload_ops = 500000;
+        return;
+    }
+
+    throw std::runtime_error("Unknown profile: " + profile);
 }
 
-void testTableUpdateDelete() {
-    std::cout << "\n--- Test 3: Table Update and Delete ---" << std::endl;
-    
-    std::string db_file = "upd_del.db";
-    std::remove(db_file.c_str());
-    DiskManager dm(db_file);
-    BufferPoolManager bpm(10, &dm);
-    Table table(&bpm);
+void applyArg(BenchmarkRunner::Config& config, const std::string& arg) {
+    auto setInt = [&](const std::string& prefix, int& target) -> bool {
+        if (arg.rfind(prefix, 0) != 0) {
+            return false;
+        }
+        target = std::stoi(arg.substr(prefix.size()));
+        return true;
+    };
 
-    // 1. Insert
-    std::string original = "Original Record";
-    RID rid;
-    table.insertRecord(original.c_str(), original.length() + 1, rid);
+    auto setSize = [&](const std::string& prefix, std::size_t& target) -> bool {
+        if (arg.rfind(prefix, 0) != 0) {
+            return false;
+        }
+        target = static_cast<std::size_t>(std::stoull(arg.substr(prefix.size())));
+        return true;
+    };
 
-    // 2. Update (In-place)
-    std::string updated_small = "Updated Small";
-    assert(table.updateRecord(updated_small.c_str(), updated_small.length() + 1, rid) == true);
-    
-    std::vector<char> data;
-    table.getRecord(rid, data);
-    assert(std::string(data.data()) == updated_small);
+    if (setInt("--small-count=", config.small_count) ||
+        setInt("--medium-count=", config.medium_count) ||
+        setInt("--pressure-count=", config.pressure_count) ||
+        setSize("--payload-bytes=", config.payload_size) ||
+        setInt("--small-buffer-pages=", config.small_buffer_pool_pages) ||
+        setInt("--medium-buffer-pages=", config.medium_buffer_pool_pages) ||
+        setInt("--pressure-buffer-pages=", config.pressure_buffer_pool_pages) ||
+        setInt("--read-ops=", config.random_read_ops) ||
+        setInt("--mixed-ops=", config.mixed_workload_ops) ||
+        setInt("--mixed-insert-pct=", config.mixed_insert_pct) ||
+        setInt("--mixed-read-pct=", config.mixed_read_pct) ||
+        setInt("--mixed-update-pct=", config.mixed_update_pct) ||
+        setInt("--mixed-delete-pct=", config.mixed_delete_pct)) {
+        return;
+    }
 
-    // 3. Update (Relocation - fill up the page first)
-    // We'll insert a huge record to force relocation
-    std::string huge_record(2000, 'X');
-    assert(table.updateRecord(huge_record.c_str(), huge_record.length() + 1, rid) == true);
-    
-    table.getRecord(rid, data);
-    assert(data.size() == huge_record.length() + 1);
-    assert(data[0] == 'X');
+    if (arg.rfind("--csv=", 0) == 0) {
+        config.csv_output_path = arg.substr(std::string("--csv=").size());
+        return;
+    }
 
-    // 4. Delete
-    assert(table.deleteRecord(rid) == true);
-    assert(table.getRecord(rid, data) == false);
+    if (arg.rfind("--profile=", 0) == 0) {
+        applyProfile(config, arg.substr(std::string("--profile=").size()));
+        return;
+    }
 
-    std::cout << "Table Update/Delete Passed!" << std::endl;
-    std::remove(db_file.c_str());
+    if (arg == "--help") {
+        std::cout
+            << "Usage: ./build/atlasdb [options]\n"
+            << "  --profile=quick|dev|large|stress\n"
+            << "  --small-count=N\n"
+            << "  --medium-count=N\n"
+            << "  --pressure-count=N\n"
+            << "  --payload-bytes=N\n"
+            << "  --small-buffer-pages=N\n"
+            << "  --medium-buffer-pages=N\n"
+            << "  --pressure-buffer-pages=N\n"
+            << "  --read-ops=N\n"
+            << "  --mixed-ops=N\n"
+            << "  --mixed-insert-pct=N\n"
+            << "  --mixed-read-pct=N\n"
+            << "  --mixed-update-pct=N\n"
+            << "  --mixed-delete-pct=N\n"
+            << "  --csv=PATH\n";
+        std::exit(0);
+    }
+
+    throw std::runtime_error("Unknown argument: " + arg);
+}
 }
 
-int main() {
+int main(int argc, char** argv) {
     try {
-        testTablePageBasic();
-        testTableMultiPage();
-        testTableUpdateDelete();
-        std::cout << "\nALL STORAGE ENGINE TESTS PASSED!" << std::endl;
+        BenchmarkRunner::Config config;
+        applyProfile(config, "quick");
+        for (int i = 1; i < argc; ++i) {
+            applyArg(config, argv[i]);
+        }
+
+        BenchmarkRunner runner(config);
+        runner.runAll();
     } catch (const std::exception& e) {
-        std::cerr << "Test failed: " << e.what() << std::endl;
+        std::cerr << "Benchmark suite failed: " << e.what() << std::endl;
         return 1;
     }
     return 0;

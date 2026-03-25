@@ -12,17 +12,17 @@ BufferPoolManager::BufferPoolManager(size_t pool_size, DiskManager *disk_manager
     _next_page_id = 0;
     
     // populating free_pages_list at begining with all pages
-    for(int i = 0; i < pool_size; i++)
+    for(size_t i = 0; i < pool_size; i++)
         _free_frames_list.push_back(i);
 }
 
 BufferPoolManager::~BufferPoolManager() {
+    flushAllPages();
+
     delete[] _frames;
     delete _replacer;
 
     _free_frames_list.clear();
-
-    flushAllPages();
 }
 
 bool BufferPoolManager::_findVictim(frame_id_t *frame_id) {
