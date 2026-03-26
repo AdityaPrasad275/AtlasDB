@@ -16,7 +16,7 @@ public:
 
     // Core methods
     int lookUp(const int &key); // Returns index of key using binary search
-    bool insert(const int &key, const RID &value); // Keep array sorted
+    InsertResult insert(const int &key, const RID &value); // Keep array sorted
     void split(BPlusTreeLeafPage *recipient); // Move half of keys to new page
     
     // Getters/Setters for linking
