@@ -10,20 +10,27 @@ BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj
 LOG_DIR = logs
 
-# Target executable
+# Target executables
 TARGET = $(BUILD_DIR)/atlasdb
+BENCH_TARGET = $(BUILD_DIR)/atlasdb_bench
 
 # Source and object files
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+COMMON_SRCS = $(filter-out $(SRC_DIR)/main.cpp $(SRC_DIR)/benchmark_main.cpp, $(wildcard $(SRC_DIR)/*.cpp))
+COMMON_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(COMMON_SRCS))
+MAIN_OBJ = $(OBJ_DIR)/main.o
+BENCH_MAIN_OBJ = $(OBJ_DIR)/benchmark_main.o
 
 # Default rule
 all: $(TARGET)
 
-# Link the executable
-$(TARGET): $(OBJS)
+# Link the executables
+$(TARGET): $(COMMON_OBJS) $(MAIN_OBJ)
 	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS)
+	$(CXX) $(COMMON_OBJS) $(MAIN_OBJ) -o $(TARGET) $(LDFLAGS)
+
+$(BENCH_TARGET): $(COMMON_OBJS) $(BENCH_MAIN_OBJ)
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(COMMON_OBJS) $(BENCH_MAIN_OBJ) -o $(BENCH_TARGET) $(LDFLAGS)
 
 # Compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
@@ -33,19 +40,23 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 # Run the database
 run: all
 	@mkdir -p $(LOG_DIR)
-	./$(TARGET) --profile=quick
+	./$(TARGET)
 
-bench-dev: all
+bench: $(BENCH_TARGET)
 	@mkdir -p $(LOG_DIR)
-	./$(TARGET) --profile=dev
+	./$(BENCH_TARGET) --profile=quick
 
-bench-large: all
+bench-dev: $(BENCH_TARGET)
 	@mkdir -p $(LOG_DIR)
-	./$(TARGET) --profile=large
+	./$(BENCH_TARGET) --profile=dev
 
-bench-stress: all
+bench-large: $(BENCH_TARGET)
 	@mkdir -p $(LOG_DIR)
-	./$(TARGET) --profile=stress
+	./$(BENCH_TARGET) --profile=large
+
+bench-stress: $(BENCH_TARGET)
+	@mkdir -p $(LOG_DIR)
+	./$(BENCH_TARGET) --profile=stress
 
 # Clean build artifacts
 clean:
@@ -53,8 +64,9 @@ clean:
 
 # Debugging: show variables
 print:
-	@echo "SRCS: $(SRCS)"
-	@echo "OBJS: $(OBJS)"
+	@echo "COMMON_SRCS: $(COMMON_SRCS)"
+	@echo "COMMON_OBJS: $(COMMON_OBJS)"
 	@echo "TARGET: $(TARGET)"
+	@echo "BENCH_TARGET: $(BENCH_TARGET)"
 
-.PHONY: all clean run bench-dev bench-large bench-stress print
+.PHONY: all clean run bench bench-dev bench-large bench-stress print

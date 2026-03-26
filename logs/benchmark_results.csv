@@ -29,3 +29,9 @@ heap_random_read_warm,250000,0.618221,404385.87,2.04,1.80,3.35,3.83,true,mode=wa
 heap_random_read_cold,250000,0.637369,392237.61,2.04,1.94,2.31,2.81,true,mode=cold_cache;records=5000000;payload_bytes=64;buffer_pool_pages=64
 heap_reopen_validation,5000000,4.085157,1223943.11,0.70,0.62,1.05,1.96,true,records=5000000;payload_bytes=64;buffer_pool_pages=1024;mode=reopen_validation
 heap_mixed_workload,250000,1454.576535,171.87,5817.86,5742.69,12763.14,15044.43,true,records_initial=2500000;payload_bytes=64;buffer_pool_pages=1024;mixed_ops=250000;mix=20/50/20/10;live_records_final=2525017
+heap_insert_scale,10000,0.026040,384023.85,2.37,1.97,2.97,12.51,true,records=10000;payload_bytes=64;buffer_pool_pages=64
+heap_insert_scale,100000,0.080885,1236321.68,0.74,0.65,0.86,4.83,true,records=100000;payload_bytes=64;buffer_pool_pages=256
+heap_random_read_warm,20000,0.051814,385994.41,2.09,1.86,3.25,6.22,true,mode=warm_cache;records=100000;payload_bytes=64;buffer_pool_pages=32
+heap_random_read_cold,20000,0.063872,313126.74,2.68,2.49,4.33,6.44,true,mode=cold_cache;records=100000;payload_bytes=64;buffer_pool_pages=32
+heap_reopen_validation,100000,0.159515,626900.14,1.37,1.35,2.44,4.33,true,records=100000;payload_bytes=64;buffer_pool_pages=256;mode=reopen_validation
+heap_mixed_workload,30000,2.933858,10225.44,97.63,90.01,225.47,318.16,true,records_initial=50000;payload_bytes=64;buffer_pool_pages=256;mixed_ops=30000;mix=20/50/20/10;live_records_final=52973

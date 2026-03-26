@@ -18,12 +18,22 @@ It is measuring different axes of behavior:
 `make run` builds the project and runs:
 
 ```bash
-./build/atlasdb --profile=quick
+./build/atlasdb
 ```
 
-So the default run is intentionally a fast benchmark profile for day-to-day development.
+This is now the development entry point, not the benchmark runner.
 
-This is not meant to be the biggest or most serious benchmark. It is meant to be fast enough that you can run it often while coding.
+Use it as a scratchpad for trying out database behavior while you are building features.
+
+## What `make bench` Does
+
+`make bench` builds the benchmark executable and runs:
+
+```bash
+./build/atlasdb_bench --profile=quick
+```
+
+That is the lightweight benchmark path for normal day-to-day performance checks.
 
 ## Benchmark Profiles
 
@@ -87,13 +97,15 @@ This is not meant for routine use after every code change.
 The Makefile exposes these targets:
 
 - `make run`
+- `make bench`
 - `make bench-dev`
 - `make bench-large`
 - `make bench-stress`
 
 These map to:
 
-- `make run` -> `--profile=quick`
+- `make run` -> `./build/atlasdb`
+- `make bench` -> `--profile=quick`
 - `make bench-dev` -> `--profile=dev`
 - `make bench-large` -> `--profile=large`
 - `make bench-stress` -> `--profile=stress`
