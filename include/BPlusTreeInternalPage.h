@@ -20,9 +20,9 @@ public:
     void split(BPlusTreeInternalPage *recipient);
 
     // Access to actual data
-    page_id_t getChildAt(int index) const { return _array[index].second; }
-    void setChildAt(int index, page_id_t value) { _array[index].second = value; }
+    page_id_t getChildAt(int index) const { return _array[index].page_id; }
+    void setChildAt(int index, page_id_t value) { _array[index].page_id = value; }
     
-    int getKeyAt(int index) const { return _array[index].first; }
-    void setKeyAt(int index, int key) { _array[index].first = key; }
+    int getKeyAt(int index) const { return _array[index].key; }
+    void setKeyAt(int index, int key) { _array[index].key = key; }
 };
