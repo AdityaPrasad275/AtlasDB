@@ -22,3 +22,8 @@ struct Slot {
     int size;
     // we represent a deleted record by putting offset = -1
 };
+
+enum class IndexPageType { INVALID_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE};
+
+using LeafMappingType = std::pair<int, RID>;
+using InternalMappingType = std::pair<int, page_id_t>;
