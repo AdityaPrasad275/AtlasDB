@@ -24,7 +24,30 @@ void BPlusTreeLeafPage::init(page_id_t page_id, page_id_t parent_id) {
 }
 
 int BPlusTreeLeafPage::lookUp(const int &key) {
+    // Page is empty, key cannot be found
+    if (_num_kv_pairs == 0) {
+        return -1;
+    }
 
+    int low = 0;
+    int high = _num_kv_pairs - 1;
+
+    // Standard binary search to find an exact match
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+
+        if (_array[mid].key == key) {
+            return mid; // Found it, return the index
+        }
+
+        if (_array[mid].key < key) {
+            low = mid + 1; // Search in the right half
+        } else {
+            high = mid - 1; // Search in the left half
+        }
+    }
+
+    return -1; // Key not found
 }
 bool BPlusTreeLeafPage::insert(const int &key, const RID &value) {
 

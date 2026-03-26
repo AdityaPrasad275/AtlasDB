@@ -25,5 +25,12 @@ struct Slot {
 
 enum class IndexPageType { INVALID_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE};
 
-using LeafMappingType = std::pair<int, RID>;
-using InternalMappingType = std::pair<int, page_id_t>;
+struct LeafMappingType {
+    int key;
+    RID rid;
+};
+
+struct InternalMappingType {
+    int key;
+    page_id_t page_id;
+};
