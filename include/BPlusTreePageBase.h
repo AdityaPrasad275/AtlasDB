@@ -16,6 +16,7 @@ protected:
 public:
     // Helper getters for the BPlusTree class to use
     bool isLeafPage() const { return _page_type == IndexPageType::LEAF_PAGE; }
+    bool isInternalPage() const { return _page_type == IndexPageType::INTERNAL_PAGE; }
     bool isRootPage() const { return _parent_page_id == Page::INVALID_PAGE_ID; } 
     
     int getNumKVPairs() const { return _num_kv_pairs; }

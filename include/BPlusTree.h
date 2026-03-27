@@ -32,7 +32,8 @@ private:
     }
 
 public:
-    BPlusTree(BufferPoolManager* bpm, page_id_t root_id = Page::INVALID_PAGE_ID);
+    BPlusTree(BufferPoolManager* bpm, page_id_t root_id = Page::INVALID_PAGE_ID) 
+        : _bpm(bpm), _root_page_id(root_id) {};
 
     // Returns true if key was found
     bool getValue(const int &key, std::vector<RID> &result);
