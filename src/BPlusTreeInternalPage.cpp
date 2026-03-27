@@ -1,4 +1,6 @@
 #include "BPlusTreeInternalPage.h"
+#include <cassert>
+#include <cstring>
 
 void BPlusTreeInternalPage::init(page_id_t page_id, page_id_t parent_page_id) {
     _page_type = IndexPageType::INTERNAL_PAGE;
@@ -35,8 +37,34 @@ page_id_t BPlusTreeInternalPage::lookUp(const int& key) {
     
     return _array[ans].page_id;
 }
-void BPlusTreeInternalPage::insertNodeAfter(page_id_t old_child, const int &key, page_id_t new_child) {
+void BPlusTreeInternalPage::insertNodeAfter(page_id_t old_child_id, const int &new_key, page_id_t new_child_id) {
+    // This page should not be full, the B+ Tree class should handle that.
+    assert(_num_kv_pairs < _max_kv_pairs);
 
+    // 1. Find the index of the old child.
+    int idx = -1;
+    for (int i = 0; i < _num_kv_pairs; i++) {
+        if (_array[i].page_id == old_child_id) {
+            idx = i;
+            break;
+        }
+    }
+    // This should never happen in a correct B+ Tree.
+    assert(idx != -1);
+
+    // 2. Make a gap for the new entry at idx + 1
+    std::memmove(
+        &_array[idx + 2],
+        &_array[idx + 1],
+        (_num_kv_pairs - (idx + 1)) * sizeof(InternalMappingType)
+    );
+
+    // 3. Insert the new entry
+    _array[idx + 1].key = new_key;
+    _array[idx + 1].page_id = new_child_id;
+    
+    // 4. Update the count
+    _num_kv_pairs++;
 }
 void BPlusTreeInternalPage::split(BPlusTreeInternalPage *recipient) {
 
