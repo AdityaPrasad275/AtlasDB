@@ -17,7 +17,7 @@ public:
     // Core methods
     page_id_t lookUp(const int& key); // Returns child page_id to follow
     void insertNodeAfter(page_id_t old_child_id, const int &new_key, page_id_t new_child_id);
-    void split(BPlusTreeInternalPage *recipient);
+    int split(BPlusTreeInternalPage *recipient);
 
     // Access to actual data
     page_id_t getChildAt(int index) const { return _array[index].page_id; }

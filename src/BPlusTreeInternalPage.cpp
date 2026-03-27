@@ -66,7 +66,36 @@ void BPlusTreeInternalPage::insertNodeAfter(page_id_t old_child_id, const int &n
     // 4. Update the count
     _num_kv_pairs++;
 }
-void BPlusTreeInternalPage::split(BPlusTreeInternalPage *recipient) {
+int BPlusTreeInternalPage::split(BPlusTreeInternalPage *recipient) {
+    // 1. Calculate the split point.
+    // An internal page has _num_kv_pairs (sentinel + keys).
+    int mid_idx = _num_kv_pairs / 2;
+    int middle_key = _array[mid_idx].key;
 
+    // 2. Setup the recipient's sentinel.
+    // The pointer associated with the middle key (P2) becomes the 
+    // first (sentinel) pointer of the new right-hand page.
+    recipient->_array[0].page_id = _array[mid_idx].page_id;
+    recipient->_num_kv_pairs = 1; // It now has its sentinel
+
+    // 3. Move everything AFTER the middle key to the recipient.
+    //    We move pairs [mid_idx + 1 ... _num_kv_pairs - 1].
+    int num_to_move = _num_kv_pairs - (mid_idx + 1);
+    if (num_to_move > 0) {
+        std::memcpy(
+            &recipient->_array[1],          // Destination starts after sentinel
+            &_array[mid_idx + 1],          // Source starts after middle key
+            num_to_move * sizeof(InternalMappingType)
+        );
+        recipient->_num_kv_pairs += num_to_move;
+    }
+
+    // 4. Shrink the original page.
+    // It now only contains [sentinel ... mid_idx - 1]
+    _num_kv_pairs = mid_idx;
+
+    // 5. The orchestrator (BPlusTree.cpp) will handle updating the
+    //    parent pointers for the children moved to the recipient.
+    return middle_key;
 }
 
