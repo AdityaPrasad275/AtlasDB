@@ -127,3 +127,67 @@ void BPlusTree::_updateChildrenParentId(page_id_t parent_id, BPlusTreeInternalPa
     }
 }
 
+bool BPlusTree::getValue(const int &key, std::vector<RID> &result) {
+    if (isEmpty()) return false;
+
+    BPlusTreeLeafPage* leaf = _findLeafPage(key);
+    assert(leaf != nullptr);
+
+    int index = leaf->lookUp(key);
+    bool found = false;
+    if (index != -1) {
+        result.push_back(leaf->getKVPair(index).rid);
+        found = true;
+    }
+
+    _bpm->unpinPage(leaf->getPageId(), false);
+    return found;
+}
+
+bool BPlusTree::insert(const int &key, const RID &rid) {
+    // 1. If tree is empty, start a new one
+    if (isEmpty()) {
+        return _startNewTree(key, rid);
+    }
+
+    // 2. Find the leaf (pins it!)
+    BPlusTreeLeafPage* leaf = _findLeafPage(key);
+    assert(leaf != nullptr);
+
+    // 3. IMPORTANT: Check for duplicates BEFORE splitting
+    if (leaf->lookUp(key) != -1) {
+        _bpm->unpinPage(leaf->getPageId(), false);
+        return false; // Duplicate key
+    }
+
+    // 4. Case A: Leaf has space
+    if (leaf->getNumKVPairs() < leaf->getMaxKVPairs()) {
+        InsertResult res = leaf->insert(key, rid); 
+        assert(res == InsertResult::SUCCESS); // We already checked for duplicates
+        _bpm->unpinPage(leaf->getPageId(), true);
+        return true;
+    }
+
+    // 5. Case B: Leaf is FULL, must split
+    page_id_t new_leaf_id;
+    auto new_leaf = _createAndCast<BPlusTreeLeafPage>(new_leaf_id);
+    assert(new_leaf != nullptr);
+
+    leaf->split(new_leaf);
+
+    // Decide which side the new key belongs on
+    // Any key >= the first key of the new leaf goes to the right
+    if (key >= new_leaf->getKVPair(0).key) {
+        new_leaf->insert(key, rid);
+    } else {
+        leaf->insert(key, rid);
+    }
+
+    // Propagate the split upward
+    _insertIntoParent(leaf, new_leaf->getKVPair(0).key, new_leaf);
+    
+    _bpm->unpinPage(leaf->getPageId(), true);
+    _bpm->unpinPage(new_leaf_id, true);
+
+    return true;
+}
