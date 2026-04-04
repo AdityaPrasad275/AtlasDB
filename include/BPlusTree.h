@@ -16,7 +16,7 @@ private:
     BPlusTreeLeafPage* _findLeafPage(const int &key);
 
     // Handles the creation of the very first page
-    void _startNewTree(const int &key, const RID &rid);
+    bool _startNewTree(const int &key, const RID &rid);
 
     // The recursive "Split upward" logic
     void _insertIntoParent(BPlusTreePageBase* old_node, 
