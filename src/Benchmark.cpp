@@ -16,6 +16,7 @@
 #include "BufferPoolManager.h"
 #include "DiskManager.h"
 #include "Table.h"
+#include "BPlusTree.h"
 
 namespace {
 using Clock = std::chrono::high_resolution_clock;
@@ -76,6 +77,11 @@ void BenchmarkRunner::runAll() {
     printResult(runRandomRead(specs[2], true));
     printResult(runReopenValidation(specs[1]));
     printResult(runMixedWorkload(specs[1]));
+
+    printResult(runBTreeInsertScale(specs[0]));
+    printResult(runBTreeInsertScale(specs[1]));
+    printResult(runBTreeRandomRead(specs[2], false));
+    printResult(runBTreeRandomRead(specs[2], true));
 }
 
 void BenchmarkRunner::openCsvIfNeeded() {
@@ -498,6 +504,138 @@ BenchmarkResult BenchmarkRunner::runMixedWorkload(const RecordSpec& spec) {
 
     const auto result = finalizeResult(
         "heap_mixed_workload",
+        latencies_us.size(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
+        latencies_us,
+        correctness_ok,
+        notes
+    );
+
+    std::remove(spec.db_file.c_str());
+    return result;
+}
+
+BenchmarkResult BenchmarkRunner::runBTreeInsertScale(const RecordSpec& spec) {
+    std::remove(spec.db_file.c_str());
+
+    DiskManager dm(spec.db_file);
+    BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
+    BPlusTree tree(&bpm);
+
+    std::vector<double> latencies_us;
+    latencies_us.reserve(spec.count);
+
+    bool correctness_ok = true;
+    const auto bench_start = Clock::now();
+
+    for (int i = 0; i < spec.count; ++i) {
+        RID rid{i, i % 10}; // Dummy RID
+        const auto op_start = Clock::now();
+        const bool ok = tree.insert(i, rid);
+        const auto op_end = Clock::now();
+
+        latencies_us.push_back(
+            static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(op_end - op_start).count()) / 1000.0
+        );
+
+        if (!ok) {
+            correctness_ok = false;
+            break;
+        }
+    }
+
+    const auto bench_end = Clock::now();
+    bpm.flushAllPages();
+
+    std::string notes =
+        "keys=" + std::to_string(spec.count) +
+        ";buffer_pool_pages=" + std::to_string(spec.buffer_pool_pages);
+
+    const auto result = finalizeResult(
+        "btree_insert_scale",
+        latencies_us.size(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
+        latencies_us,
+        correctness_ok && latencies_us.size() == static_cast<std::size_t>(spec.count),
+        notes
+    );
+
+    std::remove(spec.db_file.c_str());
+    return result;
+}
+
+BenchmarkResult BenchmarkRunner::runBTreeRandomRead(const RecordSpec& spec, bool cold_cache) {
+    std::remove(spec.db_file.c_str());
+
+    page_id_t root_id = Page::INVALID_PAGE_ID;
+    {
+        DiskManager dm(spec.db_file);
+        BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
+        BPlusTree tree(&bpm);
+
+        for (int i = 0; i < spec.count; ++i) {
+            RID rid{i, i % 10};
+            const bool ok = tree.insert(i, rid);
+            if (!ok) {
+                throw std::runtime_error("Failed to prepare btree random read benchmark dataset");
+            }
+        }
+        root_id = tree.getRootId();
+        bpm.flushAllPages();
+    }
+
+    DiskManager dm(spec.db_file);
+    BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
+    BPlusTree tree(&bpm, root_id);
+
+    if (!cold_cache) {
+        std::vector<RID> warmup_result;
+        for (int i = 0; i < spec.count; ++i) {
+            warmup_result.clear();
+            if (!tree.getValue(i, warmup_result)) {
+                throw std::runtime_error("Warm cache priming failed for BTree");
+            }
+        }
+    }
+
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<int> dist(0, spec.count - 1);
+    const int read_ops = std::min(_config.random_read_ops, spec.count);
+
+    bool correctness_ok = true;
+    std::vector<double> latencies_us;
+    latencies_us.reserve(read_ops);
+    std::vector<RID> result_buffer;
+
+    const auto bench_start = Clock::now();
+
+    for (int i = 0; i < read_ops; ++i) {
+        const int index = dist(rng);
+        result_buffer.clear();
+        
+        const auto op_start = Clock::now();
+        const bool ok = tree.getValue(index, result_buffer);
+        const auto op_end = Clock::now();
+
+        latencies_us.push_back(
+            static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(op_end - op_start).count()) / 1000.0
+        );
+
+        if (!ok || result_buffer.empty() || result_buffer[0].page_id != index) {
+            correctness_ok = false;
+            break;
+        }
+    }
+
+    const auto bench_end = Clock::now();
+
+    std::string notes =
+        std::string(cold_cache ? "mode=cold_cache" : "mode=warm_cache") +
+        ";keys=" + std::to_string(spec.count) +
+        ";buffer_pool_pages=" + std::to_string(spec.buffer_pool_pages);
+
+    const auto result = finalizeResult(
+        cold_cache ? "btree_random_read_cold" : "btree_random_read_warm",
         latencies_us.size(),
         std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
         latencies_us,

@@ -61,6 +61,9 @@ private:
     BenchmarkResult runReopenValidation(const RecordSpec& spec);
     BenchmarkResult runMixedWorkload(const RecordSpec& spec);
 
+    BenchmarkResult runBTreeInsertScale(const RecordSpec& spec);
+    BenchmarkResult runBTreeRandomRead(const RecordSpec& spec, bool cold_cache);
+
     std::vector<std::string> buildRecords(int count, std::size_t payload_size) const;
     void openCsvIfNeeded();
     void printResult(const BenchmarkResult& result) const;
