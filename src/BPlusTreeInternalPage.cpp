@@ -15,6 +15,13 @@ void BPlusTreeInternalPage::init(page_id_t page_id, page_id_t parent_page_id) {
     _max_kv_pairs = (Page::PAGE_SIZE - header_size) / sizeof(InternalMappingType) - 1;
 }
 
+void BPlusTreeInternalPage::setRootPtrs(page_id_t left_child, const int &key, page_id_t right_child) {
+    _array[0].page_id = left_child;
+    _array[1].key = key;
+    _array[1].page_id = right_child;
+    _num_kv_pairs = 2; // Sentinel + 1 real key
+}
+
 page_id_t BPlusTreeInternalPage::lookUp(const int& key) {
     // Find the largest key that is <= our search key.
     // The binary search starts from index 1, because index 0 is the sentinel

@@ -49,3 +49,81 @@ bool BPlusTree::_startNewTree(const int &key, const RID &rid) {
 
     return true;
 }
+
+void BPlusTree::_insertIntoParent(BPlusTreePageBase* old_node, const int &key, BPlusTreePageBase* new_node) {
+    // 1. Root Case: If old_node was the root, the tree gets a new level
+    if (old_node->isRootPage()) {
+        page_id_t new_root_id;
+        auto new_root = _createAndCast<BPlusTreeInternalPage>(new_root_id);
+        // if (new_root == nullptr) return;
+
+        // Set up the root with two children: old and new
+        new_root->setRootPtrs(old_node->getPageId(), key, new_node->getPageId());
+        _root_page_id = new_root_id;
+
+        // Update the parents of the children to be the new root
+        old_node->setParentPageId(new_root_id);
+        new_node->setParentPageId(new_root_id);
+
+        _bpm->unpinPage(new_root_id, true);
+        return;
+    }
+
+    // 2. Normal Case: Fetch the parent and try to insert
+    page_id_t parent_id = old_node->getParentPageId();
+    auto parent = _fetchAndCast<BPlusTreeInternalPage>(parent_id);
+    // if (parent == nullptr) return;
+
+    // A. Parent has space
+    if (parent->getNumKVPairs() < parent->getMaxKVPairs()) {
+        parent->insertNodeAfter(old_node->getPageId(), key, new_node->getPageId());
+        new_node->setParentPageId(parent_id);
+        _bpm->unpinPage(parent_id, true);
+        return;
+    }
+
+    // B. Parent is FULL: Split the parent recursively
+    page_id_t new_parent_id;
+    auto new_parent = _createAndCast<BPlusTreeInternalPage>(new_parent_id);
+    // if (new_parent == nullptr) {
+    //     _bpm->unpinPage(parent_id, false);
+    //     return;
+    // }
+
+    // Split the full parent. Returns the middle key to push further up.
+    int push_up_key = parent->split(new_parent);
+
+    // Decision: Where does the new_node go? 
+    // If the new divider key is smaller than the push-up key, it goes in 'parent'
+    // Else it goes in 'new_parent'
+    if (key < push_up_key) {
+        parent->insertNodeAfter(old_node->getPageId(), key, new_node->getPageId());
+        new_node->setParentPageId(parent_id);
+    } else {
+        new_parent->insertNodeAfter(old_node->getPageId(), key, new_node->getPageId());
+        new_node->setParentPageId(new_parent_id);
+    }
+
+    // Crucial: Update parent pointers for ALL children moved to new_parent
+    _updateChildrenParentId(new_parent_id, new_parent);
+
+    // Recursively insert the middle key into the grandparent
+    _insertIntoParent(parent, push_up_key, new_parent);
+
+    // Unpin our local handles
+    _bpm->unpinPage(parent_id, true);
+    _bpm->unpinPage(new_parent_id, true);
+}
+
+void BPlusTree::_updateChildrenParentId(page_id_t parent_id, BPlusTreeInternalPage* internal_page) {
+    for (int i = 0; i < internal_page->getNumKVPairs(); i++) {
+        page_id_t child_id = internal_page->getChildAt(i);
+        
+        auto child = _fetchAndCast<BPlusTreePageBase>(child_id);
+        // we dont need to check if child == nullptr or not currently because in fetchAndCast we have done assert
+        
+        child->setParentPageId(parent_id);
+        _bpm->unpinPage(child_id, true);
+    }
+}
+
