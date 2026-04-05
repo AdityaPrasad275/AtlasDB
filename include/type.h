@@ -36,3 +36,9 @@ struct InternalMappingType {
 };
 
 enum class InsertResult { SUCCESS, DUPLICATE_KEY, PAGE_FULL }; // for result in insertion of key in BPlusTreeLeafPage
+
+struct BPlusTreeCursor {
+    page_id_t leaf_page_id;
+    int index;
+    bool is_end;
+};
