@@ -158,3 +158,64 @@ bool Table::deleteRecord(const RID& rid) {
     return res;
 }
 
+bool Table::_findNextLiveRecord(   
+        page_id_t start_page_id, 
+        slot_id_t start_slot_id, 
+        RID& rid, 
+        std::vector<char>& data
+) {
+    // we will start scaning from (start_page_id, start_slot_id + 1)
+    // ignoring slot at start_slot_id
+    page_id_t curr_page_id = start_page_id;
+    slot_id_t curr_slot_id = start_slot_id + 1;
+    while (curr_page_id != Page::INVALID_PAGE_ID) { // page traversal loop
+        
+        TablePage* curr_page = _fetchAndCast(curr_page_id);
+        if (curr_page == nullptr) {
+            data.clear();
+            return false;
+        }
+
+        int record_size;
+        slot_id_t i = curr_slot_id;
+        
+        while (i < curr_page->getSlotCount()) { // slot traversal loop
+            char* record_ptr = curr_page->getRecord(i, record_size);
+
+            if (record_ptr != nullptr) {
+                rid.page_id = curr_page_id;
+                rid.slot_id = i;
+
+                // copying data 
+                data.assign(record_ptr, record_ptr + record_size);
+
+                _bpm->unpinPage(curr_page_id, false);
+                return true;
+            }
+            i++;
+        }
+
+        page_id_t next_page_id = curr_page->getNextPageId();
+
+        if (next_page_id == Page::INVALID_PAGE_ID) {
+            _bpm->unpinPage(curr_page_id, false);
+            data.clear();
+            return false;
+        }
+        
+        _bpm->unpinPage(curr_page_id, false);
+        curr_page_id = next_page_id;
+        curr_slot_id = 0;
+    } 
+    // no need to unpin because while exiting wouldnt have a pinned page
+    data.clear();
+    return false; // couldnt find the live slot  
+}
+
+bool Table::getFirstRecord(RID& rid, std::vector<char>& data) {
+    return _findNextLiveRecord(_first_page_id, -1, rid, data);
+}
+bool Table::getNextRecord(const RID& current, RID& next, std::vector<char>& data) {
+    return _findNextLiveRecord(current.page_id, current.slot_id, next, data);
+}
+

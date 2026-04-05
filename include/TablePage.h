@@ -20,8 +20,10 @@ public:
 
     page_id_t getPrevPageId() { return _prev_page_id; }
     void setPrevPageId(page_id_t prev_page_id ) { _prev_page_id = prev_page_id; } 
-    
+
+    page_id_t getPageId() { return _page_id; }    
     int getSlotCount() { return _slot_count; }
+    
 private:
     // Byte 0-3 (4 bytes) (assumgin page_id_t is int, 4 bytes long)
     page_id_t _prev_page_id;
