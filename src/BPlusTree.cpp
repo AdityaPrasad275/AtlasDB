@@ -116,7 +116,7 @@ void BPlusTree::_insertIntoParent(BPlusTreePageBase* old_node, const int &key, B
 }
 
 void BPlusTree::_updateChildrenParentId(page_id_t parent_id, BPlusTreeInternalPage* internal_page) {
-    for (int i = 0; i < internal_page->getNumKVPairs(); i++) {
+    for (int i = 0; i <= internal_page->getNumKeys(); i++) {
         page_id_t child_id = internal_page->getChildAt(i);
         
         auto child = _fetchAndCast<BPlusTreePageBase>(child_id);
