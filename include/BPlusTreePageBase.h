@@ -23,6 +23,7 @@ public:
     void setNumKVPairs(int size) { _num_kv_pairs = size; }
     
     int getMaxKVPairs() const { return _max_kv_pairs; }
+    int getMinKVPairs() const { return _max_kv_pairs / 2; }
     
     page_id_t getPageId() const { return _page_id; }
     page_id_t getParentPageId() const { return _parent_page_id; }
