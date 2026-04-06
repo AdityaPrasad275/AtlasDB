@@ -9,6 +9,7 @@
 #include "BufferPoolManager.h"
 #include "BPlusTree.h"
 #include "Table.h"
+#include "TableWithIndex.h"
 
 void testBPlusTreeBasic() {
     std::cout << "--- Test 1: BPlusTree Basic Insert/Lookup ---" << std::endl;
@@ -209,6 +210,57 @@ void testBPlusTreeCursorBasic() {
     std::remove(db_file.c_str());
 }
 
+void testTableWithIndexParityBasic() {
+    std::cout << "\n--- Test 6: TableWithIndex Query Parity ---" << std::endl;
+    std::string db_file = "test_table_with_index.db";
+    std::remove(db_file.c_str());
+
+    {
+        DiskManager dm(db_file);
+        BufferPoolManager bpm(32, &dm);
+        TableWithIndex table(&bpm);
+
+        std::vector<int> keys = {30, 10, 40, 20, 50};
+        for (int key : keys) {
+            std::string payload = "value-" + std::to_string(key);
+            assert(table.insert(key, payload.c_str(), static_cast<int>(payload.size() + 1)) == true);
+        }
+
+        IndexedRow scan_row;
+        IndexedRow index_row;
+        assert(table.getByKeyScan(20, scan_row) == true);
+        assert(table.getByKeyIndex(20, index_row) == true);
+        assert(scan_row.key == 20);
+        assert(index_row.key == 20);
+        assert(std::string(scan_row.payload.data()) == "value-20");
+        assert(std::string(index_row.payload.data()) == "value-20");
+
+        std::vector<IndexedRow> scan_rows;
+        std::vector<IndexedRow> index_rows;
+        assert(table.rangeScanScan(15, 45, scan_rows) == true);
+        assert(table.rangeScanIndex(15, 45, index_rows) == true);
+        assert(scan_rows.size() == 3);
+        assert(index_rows.size() == 3);
+        for (std::size_t i = 0; i < scan_rows.size(); ++i) {
+            assert(scan_rows[i].key == index_rows[i].key);
+            assert(std::string(scan_rows[i].payload.data()) == std::string(index_rows[i].payload.data()));
+        }
+
+        assert(table.updateByKey(20, 25, "value-25", 9) == true);
+        assert(table.getByKeyIndex(20, index_row) == false);
+        assert(table.getByKeyIndex(25, index_row) == true);
+        assert(index_row.key == 25);
+        assert(std::string(index_row.payload.data()) == "value-25");
+
+        assert(table.deleteByKey(40) == true);
+        assert(table.getByKeyScan(40, scan_row) == false);
+        assert(table.getByKeyIndex(40, index_row) == false);
+    }
+
+    std::cout << "TableWithIndex Query Parity Passed!" << std::endl;
+    std::remove(db_file.c_str());
+}
+
 int main() {
     try {
         testBPlusTreeBasic();
@@ -216,6 +268,7 @@ int main() {
         testBPlusTreeScale();
         testBPlusTreeDeleteBasic();
         testBPlusTreeCursorBasic();
+        testTableWithIndexParityBasic();
         std::cout << "\nALL B+ TREE TESTS PASSED! YOU ARE A GOD!" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Test failed with exception: " << e.what() << std::endl;

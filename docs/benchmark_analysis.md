@@ -1,54 +1,86 @@
 # Benchmark Analysis
 
-This file is generated from `logs/benchmark_results.csv`.
+This report is generated from the comparison benchmark CSVs under `logs/`.
 
 ## Current Read
 
-- Total benchmark rows analyzed: `30`
-- Benchmark types present: `5`
-- All runs passed correctness checks: `yes`
+- Profiles analyzed: `compare_quick, compare_dev, compare_large`
+- Total benchmark rows analyzed: `48`
+- All correctness flags true: `yes`
 
-## Main Signals
+## Key Takeaways
 
-- Insert throughput is already fairly stable across `100k`, `1M`, and `5M` record scales, staying roughly around the low-`1M ops/sec` range.
-- Warm random reads are consistently faster than cold random reads, but the gap is not enormous on the larger datasets. That suggests the OS cache and your current access path are both influential.
-- Reopen validation stays close to insert throughput and remains correct across the tested scales. That is a good sign for the page storage path.
-- Mixed workload performance degrades sharply with scale. That is the strongest signal in the current data and the area most worth improving later.
+- The fair comparison now is heap scan path versus indexed path, both returning rows end to end.
+- Point-query speedups are massive because heap point lookup is implemented as a full table scan baseline.
+- Range-query speedups remain large even though the indexed path still pays heap row fetch cost after RID lookup.
+- Insert throughput is lower with the index present, which is the expected write amplification tradeoff.
 
-## Warm vs Cold Cache Gap
+### Point Query Warm
 
-- `100000` records: warm/cold throughput ratio = `1.61x`
-- `1000000` records: warm/cold throughput ratio = `1.17x`
-- `5000000` records: warm/cold throughput ratio = `1.03x`
+- `compare_quick` (`10000` records): throughput speedup `1003.13x`, latency improvement `1071.32x`
+- `compare_dev` (`50000` records): throughput speedup `4806.79x`, latency improvement `5105.28x`
+- `compare_large` (`100000` records): throughput speedup `7449.61x`, latency improvement `7853.90x`
 
-## Insert Scale Summary
+### Point Query Cold
 
-| dataset size | buffer pool pages | samples | avg throughput (ops/sec) | avg latency (us) |
+- `compare_quick` (`10000` records): throughput speedup `1061.54x`, latency improvement `1128.30x`
+- `compare_dev` (`50000` records): throughput speedup `4370.58x`, latency improvement `4691.55x`
+- `compare_large` (`100000` records): throughput speedup `7650.12x`, latency improvement `8081.93x`
+
+### Range Query Warm
+
+- `compare_quick` (`10000` records): throughput speedup `97.34x`, latency improvement `101.73x`
+- `compare_dev` (`50000` records): throughput speedup `196.98x`, latency improvement `205.19x`
+- `compare_large` (`100000` records): throughput speedup `200.12x`, latency improvement `208.21x`
+
+### Range Query Cold
+
+- `compare_quick` (`10000` records): throughput speedup `89.36x`, latency improvement `93.34x`
+- `compare_dev` (`50000` records): throughput speedup `193.92x`, latency improvement `202.13x`
+- `compare_large` (`100000` records): throughput speedup `200.82x`, latency improvement `208.96x`
+
+## Insert Throughput
+
+| profile | records | heap ops/sec | indexed ops/sec | indexed / heap |
 | --- | ---: | ---: | ---: | ---: |
-| 10000 | 64 | 3 | 513142.75 | 1.80 |
-| 100000 | 128 | 1 | 1060971.35 | 0.86 |
-| 100000 | 256 | 3 | 1209198.39 | 0.76 |
-| 250000 | 256 | 1 | 1312916.64 | 0.70 |
-| 1000000 | 512 | 1 | 1277030.99 | 0.72 |
-| 5000000 | 1024 | 1 | 1234152.65 | 0.74 |
+| compare_quick | 1000 | 1278045.10 | 277809.96 | 0.22x |
+| compare_dev | 5000 | 1177901.25 | 272754.91 | 0.23x |
+| compare_large | 10000 | 1143376.69 | 232094.25 | 0.20x |
 
-## Mixed Workload Summary
+## Point Query Summary
 
-| initial live records | buffer pool pages | samples | avg throughput (ops/sec) | avg latency (us) | p95 latency (us) |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 50000 | 256 | 3 | 10606.01 | 94.21 | 216.72 |
-| 500000 | 512 | 1 | 1022.16 | 978.05 | 2158.56 |
-| 2500000 | 1024 | 1 | 171.87 | 5817.86 | 12763.14 |
+| profile | records | heap ops/sec | index ops/sec | speedup | heap latency us | index latency us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| compare_quick | 10000 | 153.76 | 154241.01 | 1003.13x | 6502.93 | 6.07 |
+| compare_dev | 50000 | 32.43 | 155884.35 | 4806.79x | 30835.90 | 6.04 |
+| compare_large | 100000 | 16.54 | 123216.56 | 7449.61x | 60475.01 | 7.70 |
+| compare_quick | 10000 | 159.96 | 169803.96 | 1061.54x | 6250.78 | 5.54 |
+| compare_dev | 50000 | 31.86 | 139246.52 | 4370.58x | 31386.49 | 6.69 |
+| compare_large | 100000 | 16.39 | 125385.40 | 7650.12x | 61018.59 | 7.55 |
 
-## Caveats
+## Range Query Summary
 
-- `quick` has repeated runs, but `dev` and `large` currently only have one sample each.
-- That means the broad trends are meaningful, but the exact numbers are not yet statistically stable.
-- A stronger comparison baseline would be at least `3` runs each for `dev` and `large`.
-- The benchmark suite still uses one payload size and one mixed workload ratio. More workload shapes will improve coverage.
+| profile | records | range width | heap ops/sec | index ops/sec | speedup | heap latency us | index latency us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| compare_quick | 10000 | 50 | 77.00 | 7495.40 | 97.34x | 12980.26 | 127.60 |
+| compare_dev | 50000 | 100 | 15.80 | 3112.35 | 196.98x | 63264.67 | 308.32 |
+| compare_large | 100000 | 200 | 7.93 | 1586.97 | 200.12x | 126048.37 | 605.38 |
+| compare_quick | 10000 | 50 | 77.12 | 6891.13 | 89.36x | 12960.57 | 138.85 |
+| compare_dev | 50000 | 100 | 16.26 | 3153.11 | 193.92x | 61488.89 | 304.20 |
+| compare_large | 100000 | 200 | 7.92 | 1590.52 | 200.82x | 126222.83 | 604.05 |
 
 ## Generated Plots
 
-- [Insert Throughput](logs/plots/insert_throughput.svg)
-- [Read Throughput](logs/plots/read_throughput.svg)
-- [Mixed Workload Latency](logs/plots/mixed_latency.svg)
+- `logs/plots/point_query_throughput_warm.svg`
+- `logs/plots/point_query_throughput_cold.svg`
+- `logs/plots/range_query_throughput_warm.svg`
+- `logs/plots/range_query_throughput_cold.svg`
+- `logs/plots/point_query_latency_warm.svg`
+- `logs/plots/point_query_latency_cold.svg`
+- `logs/plots/range_query_latency_warm.svg`
+- `logs/plots/range_query_latency_cold.svg`
+- `logs/plots/point_query_speedup_warm.svg`
+- `logs/plots/point_query_speedup_cold.svg`
+- `logs/plots/range_query_speedup_warm.svg`
+- `logs/plots/range_query_speedup_cold.svg`
+- `logs/plots/insert_throughput.svg`

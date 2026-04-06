@@ -1,45 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540">
 <rect width="100%" height="100%" fill="#fffdf7"/>
-<text x="450.0" y="20" text-anchor="middle" font-size="18" font-family="sans-serif">Insert and Reopen Throughput vs Dataset Size</text>
-<text x="450.0" y="490" text-anchor="middle" font-size="12" font-family="sans-serif">Dataset Size (log10 scale)</text>
-<text x="20" y="250.0" transform="rotate(-90 20,250.0)" text-anchor="middle" font-size="12" font-family="sans-serif">Throughput (ops/sec)</text>
-<line x1="80" y1="30" x2="80" y2="430" stroke="#222" stroke-width="1"/>
-<line x1="80" y1="430" x2="860" y2="430" stroke="#222" stroke-width="1"/>
-<line x1="80.0" y1="430" x2="80.0" y2="435" stroke="#777"/>
-<text x="80.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">10000</text>
-<line x1="368.99913624341673" y1="430" x2="368.99913624341673" y2="435" stroke="#777"/>
-<text x="368.99913624341673" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">100000</text>
-<line x1="484.00345502633326" y1="430" x2="484.00345502633326" y2="435" stroke="#777"/>
-<text x="484.00345502633326" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">250000</text>
-<line x1="657.9982724868335" y1="430" x2="657.9982724868335" y2="435" stroke="#777"/>
-<text x="657.9982724868335" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">1000000</text>
-<line x1="860.0" y1="430" x2="860.0" y2="435" stroke="#777"/>
-<text x="860.0" y="450" text-anchor="middle" font-size="11" font-family="sans-serif">5000000</text>
-<line x1="75" y1="430.0" x2="860" y2="430.0" stroke="#eee"/>
-<text x="70" y="434.0" text-anchor="end" font-size="11" font-family="sans-serif">513142.75</text>
-<line x1="75" y1="350.0" x2="860" y2="350.0" stroke="#eee"/>
-<text x="70" y="354.0" text-anchor="end" font-size="11" font-family="sans-serif">673097.53</text>
-<line x1="75" y1="270.0" x2="860" y2="270.0" stroke="#eee"/>
-<text x="70" y="274.0" text-anchor="end" font-size="11" font-family="sans-serif">833052.30</text>
-<line x1="75" y1="190.0" x2="860" y2="190.0" stroke="#eee"/>
-<text x="70" y="194.0" text-anchor="end" font-size="11" font-family="sans-serif">993007.08</text>
-<line x1="75" y1="110.0" x2="860" y2="110.0" stroke="#eee"/>
-<text x="70" y="114.0" text-anchor="end" font-size="11" font-family="sans-serif">1152961.86</text>
-<line x1="75" y1="30.0" x2="860" y2="30.0" stroke="#eee"/>
-<text x="70" y="34.0" text-anchor="end" font-size="11" font-family="sans-serif">1312916.64</text>
-<circle cx="80.00" cy="430.00" r="4" fill="#1b4965"/>
-<circle cx="369.00" cy="156.01" r="4" fill="#1b4965"/>
-<circle cx="369.00" cy="81.87" r="4" fill="#1b4965"/>
-<circle cx="484.00" cy="30.00" r="4" fill="#1b4965"/>
-<circle cx="658.00" cy="47.95" r="4" fill="#1b4965"/>
-<circle cx="860.00" cy="69.39" r="4" fill="#1b4965"/>
-<path d="M 80.00 430.00 L 369.00 156.01 L 369.00 81.87 L 484.00 30.00 L 658.00 47.95 L 860.00 69.39" fill="none" stroke="#1b4965" stroke-width="2"/>
-<line x1="680" y1="45" x2="698" y2="45" stroke="#1b4965" stroke-width="2"/>
-<text x="704" y="49" font-size="12" font-family="sans-serif">heap_insert_scale</text>
-<circle cx="369.00" cy="218.27" r="4" fill="#ca6702"/>
-<circle cx="658.00" cy="62.25" r="4" fill="#ca6702"/>
-<circle cx="860.00" cy="74.50" r="4" fill="#ca6702"/>
-<path d="M 369.00 218.27 L 658.00 62.25 L 860.00 74.50" fill="none" stroke="#ca6702" stroke-width="2"/>
-<line x1="680" y1="63" x2="698" y2="63" stroke="#ca6702" stroke-width="2"/>
-<text x="704" y="67" font-size="12" font-family="sans-serif">heap_reopen_validation</text>
+<text x="480.0" y="26" text-anchor="middle" font-size="20" font-family="sans-serif">Insert Throughput (Heap vs Indexed Insert)</text>
+<text x="24" y="270.0" transform="rotate(-90 24,270.0)" text-anchor="middle" font-size="12" font-family="sans-serif">ops/sec</text>
+<line x1="90" y1="50" x2="90" y2="460" stroke="#222" stroke-width="1"/>
+<line x1="90" y1="460" x2="920" y2="460" stroke="#222" stroke-width="1"/>
+<line x1="85" y1="460.0" x2="920" y2="460.0" stroke="#ece7db"/>
+<text x="80" y="464.0" text-anchor="end" font-size="11" font-family="sans-serif">0</text>
+<line x1="85" y1="378.0" x2="920" y2="378.0" stroke="#ece7db"/>
+<text x="80" y="382.0" text-anchor="end" font-size="11" font-family="sans-serif">259489</text>
+<line x1="85" y1="296.0" x2="920" y2="296.0" stroke="#ece7db"/>
+<text x="80" y="300.0" text-anchor="end" font-size="11" font-family="sans-serif">518979</text>
+<line x1="85" y1="213.99999999999997" x2="920" y2="213.99999999999997" stroke="#ece7db"/>
+<text x="80" y="217.99999999999997" text-anchor="end" font-size="11" font-family="sans-serif">778468</text>
+<line x1="85" y1="132.0" x2="920" y2="132.0" stroke="#ece7db"/>
+<text x="80" y="136.0" text-anchor="end" font-size="11" font-family="sans-serif">1037957</text>
+<line x1="85" y1="50.0" x2="920" y2="50.0" stroke="#ece7db"/>
+<text x="80" y="54.0" text-anchor="end" font-size="11" font-family="sans-serif">1297446</text>
+<rect x="108.00" y="50.00" width="84.23" height="410.00" fill="#1d3557"/>
+<text x="150.12" y="44.00" text-anchor="middle" font-size="10" font-family="sans-serif">1297446</text>
+<text x="150.12" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="228.33" y="386.48" width="84.23" height="73.52" fill="#d97706"/>
+<text x="270.45" y="380.48" text-anchor="middle" font-size="10" font-family="sans-serif">232663</text>
+<text x="270.45" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="228.33" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_quick
+10000 rec</text>
+<rect x="384.67" y="91.94" width="84.23" height="368.06" fill="#1d3557"/>
+<text x="426.78" y="85.94" text-anchor="middle" font-size="10" font-family="sans-serif">1164725</text>
+<text x="426.78" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="505.00" y="387.69" width="84.23" height="72.31" fill="#d97706"/>
+<text x="547.12" y="381.69" text-anchor="middle" font-size="10" font-family="sans-serif">228820</text>
+<text x="547.12" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="505.00" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_dev
+50000 rec</text>
+<rect x="661.33" y="148.77" width="84.23" height="311.23" fill="#1d3557"/>
+<text x="703.45" y="142.77" text-anchor="middle" font-size="10" font-family="sans-serif">984900</text>
+<text x="703.45" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="781.67" y="391.55" width="84.23" height="68.45" fill="#d97706"/>
+<text x="823.78" y="385.55" text-anchor="middle" font-size="10" font-family="sans-serif">216620</text>
+<text x="823.78" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="781.67" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_large
+100000 rec</text>
+<rect x="740" y="31" width="12" height="12" fill="#1d3557"/>
+<text x="758" y="41" font-size="12" font-family="sans-serif">Heap</text>
+<rect x="740" y="49" width="12" height="12" fill="#d97706"/>
+<text x="758" y="59" font-size="12" font-family="sans-serif">Index</text>
 </svg>

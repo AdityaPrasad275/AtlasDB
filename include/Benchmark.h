@@ -32,6 +32,8 @@ public:
         int medium_buffer_pool_pages = 256;
         int pressure_buffer_pool_pages = 32;
         int random_read_ops = 20000;
+        int range_read_ops = 5000;
+        int range_query_width = 100;
         int mixed_workload_ops = 30000;
         int mixed_insert_pct = 20;
         int mixed_read_pct = 50;
@@ -61,8 +63,9 @@ private:
     BenchmarkResult runReopenValidation(const RecordSpec& spec);
     BenchmarkResult runMixedWorkload(const RecordSpec& spec);
 
-    BenchmarkResult runBTreeInsertScale(const RecordSpec& spec);
-    BenchmarkResult runBTreeRandomRead(const RecordSpec& spec, bool cold_cache);
+    BenchmarkResult runIndexedInsertScale(const RecordSpec& spec);
+    BenchmarkResult runPointQuery(const RecordSpec& spec, bool use_index, bool cold_cache);
+    BenchmarkResult runRangeQuery(const RecordSpec& spec, bool use_index, bool cold_cache);
 
     std::vector<std::string> buildRecords(int count, std::size_t payload_size) const;
     void openCsvIfNeeded();

@@ -35,5 +35,5 @@ public:
     bool getFirstRecord(RID& rid, std::vector<char>& data); 
     bool getNextRecord(const RID& current, RID& next, std::vector<char>& data);
 
-    page_id_t getFirstPageId() { return _first_page_id; };
+    page_id_t getFirstPageId() const { return _first_page_id; };
 };

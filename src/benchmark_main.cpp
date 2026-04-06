@@ -15,6 +15,8 @@ void applyProfile(BenchmarkRunner::Config& config, const std::string& profile) {
         config.medium_buffer_pool_pages = 256;
         config.pressure_buffer_pool_pages = 32;
         config.random_read_ops = 20000;
+        config.range_read_ops = 5000;
+        config.range_query_width = 100;
         config.mixed_workload_ops = 30000;
         return;
     }
@@ -27,6 +29,8 @@ void applyProfile(BenchmarkRunner::Config& config, const std::string& profile) {
         config.medium_buffer_pool_pages = 512;
         config.pressure_buffer_pool_pages = 64;
         config.random_read_ops = 100000;
+        config.range_read_ops = 20000;
+        config.range_query_width = 200;
         config.mixed_workload_ops = 100000;
         return;
     }
@@ -39,6 +43,8 @@ void applyProfile(BenchmarkRunner::Config& config, const std::string& profile) {
         config.medium_buffer_pool_pages = 1024;
         config.pressure_buffer_pool_pages = 64;
         config.random_read_ops = 250000;
+        config.range_read_ops = 50000;
+        config.range_query_width = 500;
         config.mixed_workload_ops = 250000;
         return;
     }
@@ -51,7 +57,51 @@ void applyProfile(BenchmarkRunner::Config& config, const std::string& profile) {
         config.medium_buffer_pool_pages = 2048;
         config.pressure_buffer_pool_pages = 64;
         config.random_read_ops = 500000;
+        config.range_read_ops = 100000;
+        config.range_query_width = 1000;
         config.mixed_workload_ops = 500000;
+        return;
+    }
+
+    if (profile == "compare_quick") {
+        config.small_count = 1000;
+        config.medium_count = 10000;
+        config.pressure_count = 10000;
+        config.small_buffer_pool_pages = 64;
+        config.medium_buffer_pool_pages = 256;
+        config.pressure_buffer_pool_pages = 32;
+        config.random_read_ops = 500;
+        config.range_read_ops = 100;
+        config.range_query_width = 50;
+        config.mixed_workload_ops = 1000;
+        return;
+    }
+
+    if (profile == "compare_dev") {
+        config.small_count = 5000;
+        config.medium_count = 50000;
+        config.pressure_count = 50000;
+        config.small_buffer_pool_pages = 128;
+        config.medium_buffer_pool_pages = 512;
+        config.pressure_buffer_pool_pages = 64;
+        config.random_read_ops = 1000;
+        config.range_read_ops = 200;
+        config.range_query_width = 100;
+        config.mixed_workload_ops = 5000;
+        return;
+    }
+
+    if (profile == "compare_large") {
+        config.small_count = 10000;
+        config.medium_count = 100000;
+        config.pressure_count = 100000;
+        config.small_buffer_pool_pages = 128;
+        config.medium_buffer_pool_pages = 512;
+        config.pressure_buffer_pool_pages = 64;
+        config.random_read_ops = 2000;
+        config.range_read_ops = 500;
+        config.range_query_width = 200;
+        config.mixed_workload_ops = 10000;
         return;
     }
 
@@ -83,6 +133,8 @@ void applyArg(BenchmarkRunner::Config& config, const std::string& arg) {
         setInt("--medium-buffer-pages=", config.medium_buffer_pool_pages) ||
         setInt("--pressure-buffer-pages=", config.pressure_buffer_pool_pages) ||
         setInt("--read-ops=", config.random_read_ops) ||
+        setInt("--range-ops=", config.range_read_ops) ||
+        setInt("--range-width=", config.range_query_width) ||
         setInt("--mixed-ops=", config.mixed_workload_ops) ||
         setInt("--mixed-insert-pct=", config.mixed_insert_pct) ||
         setInt("--mixed-read-pct=", config.mixed_read_pct) ||
@@ -104,7 +156,7 @@ void applyArg(BenchmarkRunner::Config& config, const std::string& arg) {
     if (arg == "--help") {
         std::cout
             << "Usage: ./build/atlasdb_bench [options]\n"
-            << "  --profile=quick|dev|large|stress\n"
+            << "  --profile=quick|dev|large|stress|compare_quick|compare_dev|compare_large\n"
             << "  --small-count=N\n"
             << "  --medium-count=N\n"
             << "  --pressure-count=N\n"
@@ -113,6 +165,8 @@ void applyArg(BenchmarkRunner::Config& config, const std::string& arg) {
             << "  --medium-buffer-pages=N\n"
             << "  --pressure-buffer-pages=N\n"
             << "  --read-ops=N\n"
+            << "  --range-ops=N\n"
+            << "  --range-width=N\n"
             << "  --mixed-ops=N\n"
             << "  --mixed-insert-pct=N\n"
             << "  --mixed-read-pct=N\n"

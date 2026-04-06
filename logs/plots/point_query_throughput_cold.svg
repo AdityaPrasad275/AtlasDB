@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540">
+<rect width="100%" height="100%" fill="#fffdf7"/>
+<text x="480.0" y="26" text-anchor="middle" font-size="20" font-family="sans-serif">Point Query Throughput (Cold Cache)</text>
+<text x="24" y="270.0" transform="rotate(-90 24,270.0)" text-anchor="middle" font-size="12" font-family="sans-serif">ops/sec</text>
+<line x1="90" y1="50" x2="90" y2="460" stroke="#222" stroke-width="1"/>
+<line x1="90" y1="460" x2="920" y2="460" stroke="#222" stroke-width="1"/>
+<line x1="85" y1="460.0" x2="920" y2="460.0" stroke="#ece7db"/>
+<text x="80" y="464.0" text-anchor="end" font-size="11" font-family="sans-serif">0</text>
+<line x1="85" y1="378.0" x2="920" y2="378.0" stroke="#ece7db"/>
+<text x="80" y="382.0" text-anchor="end" font-size="11" font-family="sans-serif">33961</text>
+<line x1="85" y1="296.0" x2="920" y2="296.0" stroke="#ece7db"/>
+<text x="80" y="300.0" text-anchor="end" font-size="11" font-family="sans-serif">67922</text>
+<line x1="85" y1="213.99999999999997" x2="920" y2="213.99999999999997" stroke="#ece7db"/>
+<text x="80" y="217.99999999999997" text-anchor="end" font-size="11" font-family="sans-serif">101882</text>
+<line x1="85" y1="132.0" x2="920" y2="132.0" stroke="#ece7db"/>
+<text x="80" y="136.0" text-anchor="end" font-size="11" font-family="sans-serif">135843</text>
+<line x1="85" y1="50.0" x2="920" y2="50.0" stroke="#ece7db"/>
+<text x="80" y="54.0" text-anchor="end" font-size="11" font-family="sans-serif">169804</text>
+<rect x="108.00" y="459.61" width="84.23" height="0.39" fill="#1d3557"/>
+<text x="150.12" y="453.61" text-anchor="middle" font-size="10" font-family="sans-serif">160</text>
+<text x="150.12" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="228.33" y="50.00" width="84.23" height="410.00" fill="#d97706"/>
+<text x="270.45" y="44.00" text-anchor="middle" font-size="10" font-family="sans-serif">169804</text>
+<text x="270.45" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="228.33" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_quick
+10000 rec</text>
+<rect x="384.67" y="459.92" width="84.23" height="0.08" fill="#1d3557"/>
+<text x="426.78" y="453.92" text-anchor="middle" font-size="10" font-family="sans-serif">32</text>
+<text x="426.78" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="505.00" y="123.78" width="84.23" height="336.22" fill="#d97706"/>
+<text x="547.12" y="117.78" text-anchor="middle" font-size="10" font-family="sans-serif">139247</text>
+<text x="547.12" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="505.00" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_dev
+50000 rec</text>
+<rect x="661.33" y="459.96" width="84.23" height="0.04" fill="#1d3557"/>
+<text x="703.45" y="453.96" text-anchor="middle" font-size="10" font-family="sans-serif">16</text>
+<text x="703.45" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Heap</text>
+<rect x="781.67" y="157.25" width="84.23" height="302.75" fill="#d97706"/>
+<text x="823.78" y="151.25" text-anchor="middle" font-size="10" font-family="sans-serif">125385</text>
+<text x="823.78" y="476" text-anchor="middle" font-size="10" font-family="sans-serif">Index</text>
+<text x="781.67" y="522" text-anchor="middle" font-size="12" font-family="sans-serif">compare_large
+100000 rec</text>
+<rect x="740" y="31" width="12" height="12" fill="#1d3557"/>
+<text x="758" y="41" font-size="12" font-family="sans-serif">Heap</text>
+<rect x="740" y="49" width="12" height="12" fill="#d97706"/>
+<text x="758" y="59" font-size="12" font-family="sans-serif">Index</text>
+</svg>

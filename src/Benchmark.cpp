@@ -17,6 +17,7 @@
 #include "DiskManager.h"
 #include "Table.h"
 #include "BPlusTree.h"
+#include "TableWithIndex.h"
 
 namespace {
 using Clock = std::chrono::high_resolution_clock;
@@ -78,10 +79,16 @@ void BenchmarkRunner::runAll() {
     printResult(runReopenValidation(specs[1]));
     printResult(runMixedWorkload(specs[1]));
 
-    printResult(runBTreeInsertScale(specs[0]));
-    printResult(runBTreeInsertScale(specs[1]));
-    printResult(runBTreeRandomRead(specs[2], false));
-    printResult(runBTreeRandomRead(specs[2], true));
+    printResult(runIndexedInsertScale(specs[0]));
+    printResult(runIndexedInsertScale(specs[1]));
+    printResult(runPointQuery(specs[2], false, false));
+    printResult(runPointQuery(specs[2], false, true));
+    printResult(runPointQuery(specs[2], true, false));
+    printResult(runPointQuery(specs[2], true, true));
+    printResult(runRangeQuery(specs[2], false, false));
+    printResult(runRangeQuery(specs[2], false, true));
+    printResult(runRangeQuery(specs[2], true, false));
+    printResult(runRangeQuery(specs[2], true, true));
 }
 
 void BenchmarkRunner::openCsvIfNeeded() {
@@ -515,12 +522,14 @@ BenchmarkResult BenchmarkRunner::runMixedWorkload(const RecordSpec& spec) {
     return result;
 }
 
-BenchmarkResult BenchmarkRunner::runBTreeInsertScale(const RecordSpec& spec) {
+BenchmarkResult BenchmarkRunner::runIndexedInsertScale(const RecordSpec& spec) {
     std::remove(spec.db_file.c_str());
 
     DiskManager dm(spec.db_file);
     BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
-    BPlusTree tree(&bpm);
+    TableWithIndex table(&bpm);
+
+    const auto records = buildRecords(spec.count, spec.payload_size);
 
     std::vector<double> latencies_us;
     latencies_us.reserve(spec.count);
@@ -529,9 +538,12 @@ BenchmarkResult BenchmarkRunner::runBTreeInsertScale(const RecordSpec& spec) {
     const auto bench_start = Clock::now();
 
     for (int i = 0; i < spec.count; ++i) {
-        RID rid{i, i % 10}; // Dummy RID
         const auto op_start = Clock::now();
-        const bool ok = tree.insert(i, rid);
+        const bool ok = table.insert(
+            i,
+            records[static_cast<std::size_t>(i)].c_str(),
+            static_cast<int>(records[static_cast<std::size_t>(i)].size() + 1)
+        );
         const auto op_end = Clock::now();
 
         latencies_us.push_back(
@@ -548,11 +560,12 @@ BenchmarkResult BenchmarkRunner::runBTreeInsertScale(const RecordSpec& spec) {
     bpm.flushAllPages();
 
     std::string notes =
-        "keys=" + std::to_string(spec.count) +
+        "records=" + std::to_string(spec.count) +
+        ";payload_bytes=" + std::to_string(spec.payload_size) +
         ";buffer_pool_pages=" + std::to_string(spec.buffer_pool_pages);
 
     const auto result = finalizeResult(
-        "btree_insert_scale",
+        "indexed_insert_scale",
         latencies_us.size(),
         std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
         latencies_us,
@@ -564,36 +577,45 @@ BenchmarkResult BenchmarkRunner::runBTreeInsertScale(const RecordSpec& spec) {
     return result;
 }
 
-BenchmarkResult BenchmarkRunner::runBTreeRandomRead(const RecordSpec& spec, bool cold_cache) {
+BenchmarkResult BenchmarkRunner::runPointQuery(const RecordSpec& spec, bool use_index, bool cold_cache) {
     std::remove(spec.db_file.c_str());
 
-    page_id_t root_id = Page::INVALID_PAGE_ID;
+    page_id_t table_first_page_id = Page::INVALID_PAGE_ID;
+    page_id_t index_root_id = Page::INVALID_PAGE_ID;
+    const auto records = buildRecords(spec.count, spec.payload_size);
     {
         DiskManager dm(spec.db_file);
         BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
-        BPlusTree tree(&bpm);
+        TableWithIndex table(&bpm);
 
         for (int i = 0; i < spec.count; ++i) {
-            RID rid{i, i % 10};
-            const bool ok = tree.insert(i, rid);
+            const bool ok = table.insert(
+                i,
+                records[static_cast<std::size_t>(i)].c_str(),
+                static_cast<int>(records[static_cast<std::size_t>(i)].size() + 1)
+            );
             if (!ok) {
-                throw std::runtime_error("Failed to prepare btree random read benchmark dataset");
+                throw std::runtime_error("Failed to prepare indexed point-query benchmark dataset");
             }
         }
-        root_id = tree.getRootId();
+        table_first_page_id = table.getTableFirstPageId();
+        index_root_id = table.getIndexRootId();
         bpm.flushAllPages();
     }
 
     DiskManager dm(spec.db_file);
     BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
-    BPlusTree tree(&bpm, root_id);
+    TableWithIndex table(&bpm, table_first_page_id, index_root_id);
 
     if (!cold_cache) {
-        std::vector<RID> warmup_result;
-        for (int i = 0; i < spec.count; ++i) {
-            warmup_result.clear();
-            if (!tree.getValue(i, warmup_result)) {
-                throw std::runtime_error("Warm cache priming failed for BTree");
+        std::vector<IndexedRow> warmup_rows;
+        if (use_index) {
+            if (!table.rangeScanIndex(0, spec.count - 1, warmup_rows)) {
+                throw std::runtime_error("Warm cache priming failed for indexed point queries");
+            }
+        } else {
+            if (!table.rangeScanScan(0, spec.count - 1, warmup_rows)) {
+                throw std::runtime_error("Warm cache priming failed for scan point queries");
             }
         }
     }
@@ -605,23 +627,22 @@ BenchmarkResult BenchmarkRunner::runBTreeRandomRead(const RecordSpec& spec, bool
     bool correctness_ok = true;
     std::vector<double> latencies_us;
     latencies_us.reserve(read_ops);
-    std::vector<RID> result_buffer;
+    IndexedRow row;
 
     const auto bench_start = Clock::now();
 
     for (int i = 0; i < read_ops; ++i) {
         const int index = dist(rng);
-        result_buffer.clear();
-        
+
         const auto op_start = Clock::now();
-        const bool ok = tree.getValue(index, result_buffer);
+        const bool ok = use_index ? table.getByKeyIndex(index, row) : table.getByKeyScan(index, row);
         const auto op_end = Clock::now();
 
         latencies_us.push_back(
             static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(op_end - op_start).count()) / 1000.0
         );
 
-        if (!ok || result_buffer.empty() || result_buffer[0].page_id != index) {
+        if (!ok || row.key != index || std::string(row.payload.data()) != records[static_cast<std::size_t>(index)]) {
             correctness_ok = false;
             break;
         }
@@ -631,11 +652,123 @@ BenchmarkResult BenchmarkRunner::runBTreeRandomRead(const RecordSpec& spec, bool
 
     std::string notes =
         std::string(cold_cache ? "mode=cold_cache" : "mode=warm_cache") +
-        ";keys=" + std::to_string(spec.count) +
+        ";access_path=" + std::string(use_index ? "index" : "scan") +
+        ";records=" + std::to_string(spec.count) +
+        ";payload_bytes=" + std::to_string(spec.payload_size) +
         ";buffer_pool_pages=" + std::to_string(spec.buffer_pool_pages);
 
     const auto result = finalizeResult(
-        cold_cache ? "btree_random_read_cold" : "btree_random_read_warm",
+        std::string(use_index ? "indexed_point_query_" : "heap_point_query_") + (cold_cache ? "cold" : "warm"),
+        latencies_us.size(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
+        latencies_us,
+        correctness_ok,
+        notes
+    );
+
+    std::remove(spec.db_file.c_str());
+    return result;
+}
+
+BenchmarkResult BenchmarkRunner::runRangeQuery(const RecordSpec& spec, bool use_index, bool cold_cache) {
+    std::remove(spec.db_file.c_str());
+
+    page_id_t table_first_page_id = Page::INVALID_PAGE_ID;
+    page_id_t index_root_id = Page::INVALID_PAGE_ID;
+    const auto records = buildRecords(spec.count, spec.payload_size);
+    {
+        DiskManager dm(spec.db_file);
+        BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
+        TableWithIndex table(&bpm);
+
+        for (int i = 0; i < spec.count; ++i) {
+            const bool ok = table.insert(
+                i,
+                records[static_cast<std::size_t>(i)].c_str(),
+                static_cast<int>(records[static_cast<std::size_t>(i)].size() + 1)
+            );
+            if (!ok) {
+                throw std::runtime_error("Failed to prepare indexed range-query benchmark dataset");
+            }
+        }
+        table_first_page_id = table.getTableFirstPageId();
+        index_root_id = table.getIndexRootId();
+        bpm.flushAllPages();
+    }
+
+    DiskManager dm(spec.db_file);
+    BufferPoolManager bpm(spec.buffer_pool_pages, &dm);
+    TableWithIndex table(&bpm, table_first_page_id, index_root_id);
+
+    if (!cold_cache) {
+        std::vector<IndexedRow> warmup_rows;
+        if (use_index) {
+            if (!table.rangeScanIndex(0, spec.count - 1, warmup_rows)) {
+                throw std::runtime_error("Warm cache priming failed for indexed range queries");
+            }
+        } else {
+            if (!table.rangeScanScan(0, spec.count - 1, warmup_rows)) {
+                throw std::runtime_error("Warm cache priming failed for scan range queries");
+            }
+        }
+    }
+
+    const int range_ops = std::min(_config.range_read_ops, spec.count);
+    const int range_width = std::max(1, std::min(_config.range_query_width, spec.count));
+    std::mt19937 rng(84);
+    std::uniform_int_distribution<int> dist(0, spec.count - range_width);
+
+    bool correctness_ok = true;
+    std::vector<double> latencies_us;
+    latencies_us.reserve(range_ops);
+
+    const auto bench_start = Clock::now();
+
+    for (int i = 0; i < range_ops; ++i) {
+        const int low = dist(rng);
+        const int high = low + range_width - 1;
+        std::vector<IndexedRow> rows;
+
+        const auto op_start = Clock::now();
+        const bool ok = use_index ? table.rangeScanIndex(low, high, rows) : table.rangeScanScan(low, high, rows);
+        const auto op_end = Clock::now();
+
+        latencies_us.push_back(
+            static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(op_end - op_start).count()) / 1000.0
+        );
+
+        if (!ok || rows.size() != static_cast<std::size_t>(range_width)) {
+            correctness_ok = false;
+            break;
+        }
+
+        for (int offset = 0; offset < range_width; ++offset) {
+            const int expected_key = low + offset;
+            const IndexedRow& row = rows[static_cast<std::size_t>(offset)];
+            if (row.key != expected_key ||
+                std::string(row.payload.data()) != records[static_cast<std::size_t>(expected_key)]) {
+                correctness_ok = false;
+                break;
+            }
+        }
+
+        if (!correctness_ok) {
+            break;
+        }
+    }
+
+    const auto bench_end = Clock::now();
+
+    std::string notes =
+        std::string(cold_cache ? "mode=cold_cache" : "mode=warm_cache") +
+        ";access_path=" + std::string(use_index ? "index" : "scan") +
+        ";records=" + std::to_string(spec.count) +
+        ";payload_bytes=" + std::to_string(spec.payload_size) +
+        ";buffer_pool_pages=" + std::to_string(spec.buffer_pool_pages) +
+        ";range_width=" + std::to_string(range_width);
+
+    const auto result = finalizeResult(
+        std::string(use_index ? "indexed_range_query_" : "heap_range_query_") + (cold_cache ? "cold" : "warm"),
         latencies_us.size(),
         std::chrono::duration_cast<std::chrono::nanoseconds>(bench_end - bench_start).count(),
         latencies_us,

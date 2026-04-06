@@ -1,0 +1,17 @@
+benchmark,total_ops,total_seconds,throughput_ops_per_sec,avg_latency_us,p50_latency_us,p95_latency_us,p99_latency_us,correctness_ok,notes
+heap_insert_scale,5000,0.004245,1177901.25,0.77,0.67,1.19,1.85,true,records=5000;payload_bytes=64;buffer_pool_pages=128
+heap_insert_scale,50000,0.042929,1164724.79,0.79,0.70,0.97,2.05,true,records=50000;payload_bytes=64;buffer_pool_pages=512
+heap_random_read_warm,1000,0.002510,398455.27,2.05,2.06,2.33,2.72,true,mode=warm_cache;records=50000;payload_bytes=64;buffer_pool_pages=64
+heap_random_read_cold,1000,0.002522,396564.64,2.15,2.17,2.44,2.63,true,mode=cold_cache;records=50000;payload_bytes=64;buffer_pool_pages=64
+heap_reopen_validation,50000,0.051129,977911.18,0.88,0.81,1.14,2.28,true,records=50000;payload_bytes=64;buffer_pool_pages=512;mode=reopen_validation
+heap_mixed_workload,5000,0.270146,18508.50,53.92,50.59,121.58,137.52,true,records_initial=25000;payload_bytes=64;buffer_pool_pages=512;mixed_ops=5000;mix=20/50/20/10;live_records_final=25448
+indexed_insert_scale,5000,0.018331,272754.91,3.62,3.61,4.15,5.28,true,records=5000;payload_bytes=64;buffer_pool_pages=128
+indexed_insert_scale,50000,0.218513,228819.84,4.31,4.23,4.91,10.03,true,records=50000;payload_bytes=64;buffer_pool_pages=512
+heap_point_query_warm,1000,30.836999,32.43,30835.90,30986.50,59268.38,63046.64,true,mode=warm_cache;access_path=scan;records=50000;payload_bytes=64;buffer_pool_pages=64
+heap_point_query_cold,1000,31.387763,31.86,31386.49,31546.25,59612.95,64935.04,true,mode=cold_cache;access_path=scan;records=50000;payload_bytes=64;buffer_pool_pages=64
+indexed_point_query_warm,1000,0.006415,155884.35,6.04,6.09,6.70,9.12,true,mode=warm_cache;access_path=index;records=50000;payload_bytes=64;buffer_pool_pages=64
+indexed_point_query_cold,1000,0.007182,139246.52,6.69,6.21,9.24,12.41,true,mode=cold_cache;access_path=index;records=50000;payload_bytes=64;buffer_pool_pages=64
+heap_range_query_warm,200,12.655441,15.80,63264.67,63630.60,65071.59,65790.41,true,mode=warm_cache;access_path=scan;records=50000;payload_bytes=64;buffer_pool_pages=64;range_width=100
+heap_range_query_cold,200,12.300376,16.26,61488.89,60980.57,66012.20,70955.85,true,mode=cold_cache;access_path=scan;records=50000;payload_bytes=64;buffer_pool_pages=64;range_width=100
+indexed_range_query_warm,200,0.064260,3112.35,308.32,308.02,322.03,341.78,true,mode=warm_cache;access_path=index;records=50000;payload_bytes=64;buffer_pool_pages=64;range_width=100
+indexed_range_query_cold,200,0.063429,3153.11,304.20,302.69,321.49,342.31,true,mode=cold_cache;access_path=index;records=50000;payload_bytes=64;buffer_pool_pages=64;range_width=100
