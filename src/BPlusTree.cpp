@@ -17,6 +17,9 @@ BPlusTreeLeafPage* BPlusTree::_findLeafPage(const int &key) {
 
         _bpm->unpinPage(current_id, false);
         current_id = next_id;
+        if (current_id == Page::INVALID_PAGE_ID)
+            return nullptr;
+
         page = _fetchAndCast<BPlusTreePageBase>(current_id);
     }
 
@@ -249,15 +252,15 @@ void BPlusTree::_mergeInternal(
 }
 
 void BPlusTree::_handleLeafUnderflow(BPlusTreeLeafPage* leaf) {
-    if (leaf->isRootPage()) {
-        _adjustRoot(leaf);
-        return;
-    }
+    // if (leaf->isRootPage()) {
+    //     _adjustRoot(leaf);
+    //     return;
+    // }
 
-    if (leaf->getNumKVPairs() >= leaf->getMinKVPairs()) {
-        _bpm->unpinPage(leaf->getPageId(), false);
-        return;
-    }
+    // if (leaf->getNumKVPairs() >= leaf->getMinKVPairs()) {
+    //     _bpm->unpinPage(leaf->getPageId(), false);
+    //     return;
+    // }
 
     BPlusTreePageBase* left_base = nullptr;
     BPlusTreePageBase* right_base = nullptr;
@@ -481,7 +484,7 @@ bool BPlusTree::remove(const int &key) {
         return false;
     }
 
-    if (leaf->isRootPage() || leaf->getNumKVPairs() >= leaf->getMinKVPairs()) {
+    if (leaf->isRootPage() or leaf->getNumKVPairs() >= leaf->getMinKVPairs()) {
         if (leaf->isRootPage()) {
             _adjustRoot(leaf);
         } else {
@@ -491,6 +494,154 @@ bool BPlusTree::remove(const int &key) {
     }
 
     _handleLeafUnderflow(leaf);
+    return true;
+}
+
+bool BPlusTree::begin(BPlusTreeCursor &cursor) {
+    if (isEmpty()) {
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    page_id_t current_id = _root_page_id;
+    BPlusTreePageBase* page = _fetchAndCast<BPlusTreePageBase>(current_id);
+
+    while (page->isInternalPage()) {
+        auto internal = reinterpret_cast<BPlusTreeInternalPage*>(page);
+        page_id_t next_id = internal->getLeftmostChild();
+        _bpm->unpinPage(current_id, false);
+        current_id = next_id;
+        page = _fetchAndCast<BPlusTreePageBase>(current_id);
+    }
+
+    auto leaf = reinterpret_cast<BPlusTreeLeafPage*>(page);
+    if (leaf->getNumKVPairs() == 0) {
+        _bpm->unpinPage(current_id, false);
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    cursor.leaf_page_id = current_id;
+    cursor.index = 0;
+    cursor.is_end = false;
+    _bpm->unpinPage(current_id, false);
+    return true;
+}
+
+bool BPlusTree::lowerBound(const int &key, BPlusTreeCursor &cursor) {
+    if (isEmpty()) {
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    BPlusTreeLeafPage* leaf = _findLeafPage(key);
+    assert(leaf != nullptr);
+
+    int low = 0;
+    int high = leaf->getNumKVPairs();
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (leaf->keyAt(mid) < key) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+
+    if (low < leaf->getNumKVPairs()) {
+        cursor.leaf_page_id = leaf->getPageId();
+        cursor.index = low;
+        cursor.is_end = false;
+        _bpm->unpinPage(leaf->getPageId(), false);
+        return true;
+    }
+
+    page_id_t next_leaf_id = leaf->getNextPageId();
+    _bpm->unpinPage(leaf->getPageId(), false);
+
+    if (next_leaf_id == Page::INVALID_PAGE_ID) {
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    auto next_leaf = _fetchAndCast<BPlusTreeLeafPage>(next_leaf_id);
+    if (next_leaf->getNumKVPairs() == 0) {
+        _bpm->unpinPage(next_leaf_id, false);
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    cursor.leaf_page_id = next_leaf_id;
+    cursor.index = 0;
+    cursor.is_end = false;
+    _bpm->unpinPage(next_leaf_id, false);
+    return true;
+}
+
+bool BPlusTree::getCursorValue(const BPlusTreeCursor &cursor, int &key, RID &rid) {
+    if (cursor.is_end || cursor.leaf_page_id == Page::INVALID_PAGE_ID || cursor.index < 0) {
+        return false;
+    }
+
+    auto leaf = _fetchAndCast<BPlusTreeLeafPage>(cursor.leaf_page_id);
+    if (cursor.index >= leaf->getNumKVPairs()) {
+        _bpm->unpinPage(cursor.leaf_page_id, false);
+        return false;
+    }
+
+    const LeafMappingType& entry = leaf->getKVPair(cursor.index);
+    key = entry.key;
+    rid = entry.rid;
+    _bpm->unpinPage(cursor.leaf_page_id, false);
+    return true;
+}
+
+bool BPlusTree::next(BPlusTreeCursor &cursor) {
+    if (cursor.is_end || cursor.leaf_page_id == Page::INVALID_PAGE_ID || cursor.index < 0) {
+        return false;
+    }
+
+    auto leaf = _fetchAndCast<BPlusTreeLeafPage>(cursor.leaf_page_id);
+
+    if (cursor.index + 1 < leaf->getNumKVPairs()) {
+        cursor.index++;
+        _bpm->unpinPage(cursor.leaf_page_id, false);
+        return true;
+    }
+
+    page_id_t next_leaf_id = leaf->getNextPageId();
+    _bpm->unpinPage(cursor.leaf_page_id, false);
+
+    if (next_leaf_id == Page::INVALID_PAGE_ID) {
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    auto next_leaf = _fetchAndCast<BPlusTreeLeafPage>(next_leaf_id);
+    if (next_leaf->getNumKVPairs() == 0) {
+        _bpm->unpinPage(next_leaf_id, false);
+        cursor.leaf_page_id = Page::INVALID_PAGE_ID;
+        cursor.index = -1;
+        cursor.is_end = true;
+        return false;
+    }
+
+    cursor.leaf_page_id = next_leaf_id;
+    cursor.index = 0;
+    cursor.is_end = false;
+    _bpm->unpinPage(next_leaf_id, false);
     return true;
 }
 
