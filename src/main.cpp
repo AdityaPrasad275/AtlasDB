@@ -120,11 +120,56 @@ void testBPlusTreeScale() {
     std::remove(db_file.c_str());
 }
 
+void testBPlusTreeDeleteBasic() {
+    std::cout << "\n--- Test 4: BPlusTree Basic Delete ---" << std::endl;
+    std::string db_file = "test_btree_delete_basic.db";
+    std::remove(db_file.c_str());
+
+    {
+        DiskManager dm(db_file);
+        BufferPoolManager bpm(10, &dm);
+        BPlusTree tree(&bpm);
+
+        for (int i = 0; i < 30; ++i) {
+            RID rid = {i, i % 10};
+            assert(tree.insert(i, rid) == true);
+        }
+
+        std::vector<int> keys_to_delete = {0, 7, 14, 29};
+        for (int key : keys_to_delete) {
+            assert(tree.remove(key) == true);
+        }
+
+        for (int key : keys_to_delete) {
+            std::vector<RID> result;
+            assert(tree.getValue(key, result) == false);
+        }
+
+        for (int i = 0; i < 30; ++i) {
+            if (std::find(keys_to_delete.begin(), keys_to_delete.end(), i) != keys_to_delete.end()) {
+                continue;
+            }
+
+            std::vector<RID> result;
+            assert(tree.getValue(i, result) == true);
+            assert(result.size() == 1);
+            assert(result[0].page_id == i);
+            assert(result[0].slot_id == i % 10);
+        }
+
+        assert(tree.remove(1000) == false);
+    }
+
+    std::cout << "BPlusTree Basic Delete Passed!" << std::endl;
+    std::remove(db_file.c_str());
+}
+
 int main() {
     try {
         testBPlusTreeBasic();
         testBPlusTreeStress();
         testBPlusTreeScale();
+        testBPlusTreeDeleteBasic();
         std::cout << "\nALL B+ TREE TESTS PASSED! YOU ARE A GOD!" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Test failed with exception: " << e.what() << std::endl;

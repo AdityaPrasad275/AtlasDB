@@ -39,6 +39,12 @@ public:
     page_id_t getLeftmostChild() const { return _leftmost_child; }
     void setLeftmostChild(page_id_t child_id) { _leftmost_child = child_id; }
 
+    int getKeyAt(int index) const { return _entries[index].key; }
+    void setKeyAt(int index, int key) { _entries[index].key = key; }
+
+    page_id_t getRightChildAt(int index) const { return _entries[index].page_id; }
+    void setRightChildAt(int index, page_id_t value) { _entries[index].page_id = value; }
+
     page_id_t getChildAt(int index) const {
         return index == 0 ? _leftmost_child : _entries[index - 1].page_id;
     }
@@ -50,12 +56,6 @@ public:
             _entries[index - 1].page_id = value;
         }
     }
-
-    int getKeyAt(int index) const { return _entries[index].key; }
-    void setKeyAt(int index, int key) { _entries[index].key = key; }
-
-    page_id_t getRightChildAt(int index) const { return _entries[index].page_id; }
-    void setRightChildAt(int index, page_id_t value) { _entries[index].page_id = value; }
 
     InternalMappingType* getEntriesPtr() { return _entries; }
 };

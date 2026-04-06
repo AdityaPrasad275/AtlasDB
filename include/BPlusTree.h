@@ -33,26 +33,60 @@ private:
         BPlusTreePageBase* new_node
     );
 
+    void _createNewRoot(
+        BPlusTreePageBase* old_node,
+        const int &key,
+        BPlusTreePageBase* new_node
+    );
+
+    void _findSiblingPages(
+        BPlusTreePageBase* node,
+        BPlusTreePageBase*& left_sibling,
+        BPlusTreePageBase*& right_sibling,
+        BPlusTreeInternalPage*& parent,
+        int& node_child_index
+    );
+
+    bool _redistributeLeaf(
+        BPlusTreeLeafPage* left,
+        BPlusTreeLeafPage* right,
+        BPlusTreeInternalPage* parent,
+        int separator_index
+    );
+
+    void _mergeLeaf(
+        BPlusTreeLeafPage* left,
+        BPlusTreeLeafPage* right,
+        BPlusTreeInternalPage* parent,
+        int separator_index
+    );
+
+    bool _redistributeInternal(
+        BPlusTreeInternalPage* left,
+        BPlusTreeInternalPage* right,
+        BPlusTreeInternalPage* parent,
+        int separator_index
+    );
+
+    void _mergeInternal(
+        BPlusTreeInternalPage* left,
+        BPlusTreeInternalPage* right,
+        BPlusTreeInternalPage* parent,
+        int separator_index
+    );
+
+    void _handleLeafUnderflow(BPlusTreeLeafPage* leaf);
+    void _handleInternalUnderflow(BPlusTreeInternalPage* internal);
+    void _adjustRoot(BPlusTreePageBase* root);
+
     void _updateChildrenParentId(page_id_t parent_id, BPlusTreeInternalPage* internal_page); // Helper to update parent pointers for all children of an internal node
 
-    // Helper to fetch a page and cast it safely
     template <typename T>
-    T* _fetchAndCast(page_id_t page_id) {
-        if (page_id == Page::INVALID_PAGE_ID) return nullptr;
-        Page* page = _bpm->fetchPage(page_id);
-        assert(page != nullptr);
-        return reinterpret_cast<T*>(page->getData());
-    }
+    T* _fetchAndCast(page_id_t page_id);
 
-    // Helper to create a new page and cast it safely
     template <typename T>
-    T* _createAndCast(page_id_t &new_page_id) {
-        Page* page = _bpm->newPage(new_page_id);
-        assert(page != nullptr);
-        T* casted_page = reinterpret_cast<T*>(page->getData());
-        casted_page->init(new_page_id);
-        return casted_page;
-    }
+    T* _createAndCast(page_id_t &new_page_id);
+        
 
 public:
     BPlusTree(BufferPoolManager* bpm, page_id_t root_id = Page::INVALID_PAGE_ID) 
