@@ -11,16 +11,17 @@ class BPlusTreeInternalPage : public BPlusTreePageBase {
 private:
     page_id_t _leftmost_child;
     InternalMappingType _entries[0]; // Flexible array member of (key, right_child)
+    // here the pointer (page_id) enteries[i] meanas the child contains key from [entries[i].key, enteries[i+1].key) (inclusive on one side)
 
 public:
     void init(page_id_t page_id, page_id_t parent_page_id = Page::INVALID_PAGE_ID);
 
-    // Used when a root splits to create the new internal root
-    void setRootPtrs(page_id_t left_child, const int &key, page_id_t right_child);
+    // // Used when a root splits to create the new internal root
+    // void setRootPtrs(page_id_t left_child, const int &key, page_id_t right_child); //algo
 
     // Core methods
     page_id_t lookUp(const int& key); // Returns child page_id to follow
-    void insertNodeAfter(page_id_t old_child_id, const int &new_key, page_id_t new_child_id);
+    void insertNodeAfter(page_id_t old_child_id, const int &new_key, page_id_t new_child_id); //
     int split(BPlusTreeInternalPage *recipient);
 
     // Delete/rebalance helpers

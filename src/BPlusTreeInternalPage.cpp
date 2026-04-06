@@ -13,12 +13,12 @@ void BPlusTreeInternalPage::init(page_id_t page_id, page_id_t parent_page_id) {
     _max_kv_pairs = (Page::PAGE_SIZE - header_size) / sizeof(InternalMappingType);
 }
 
-void BPlusTreeInternalPage::setRootPtrs(page_id_t left_child, const int &key, page_id_t right_child) {
-    _leftmost_child = left_child;
-    _entries[0].key = key;
-    _entries[0].page_id = right_child;
-    _num_kv_pairs = 1;
-}
+// void BPlusTreeInternalPage::setRootPtrs(page_id_t left_child, const int &key, page_id_t right_child) {
+//     _leftmost_child = left_child;
+//     _entries[0].key = key;
+//     _entries[0].page_id = right_child;
+//     _num_kv_pairs = 1;
+// }
 
 page_id_t BPlusTreeInternalPage::lookUp(const int& key) {
     if (_num_kv_pairs == 0) {
@@ -153,6 +153,9 @@ InternalMappingType BPlusTreeInternalPage::popBack() {
 }
 
 void BPlusTreeInternalPage::absorb(BPlusTreeInternalPage* donor, int middle_key) {
+    assert (_num_kv_pairs + 1 < donor->getNumKeys());
+    // +1 for sperateor key being pulled down from parent and added in this page
+    
     appendEntry(middle_key, donor->getLeftmostChild());
     for (int i = 0; i < donor->getNumKeys(); i++) {
         appendEntry(donor->getKeyAt(i), donor->getRightChildAt(i));

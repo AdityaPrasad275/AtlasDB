@@ -1,5 +1,15 @@
 #pragma once
 
+/*
+B+tree invariants ->
+- all data entries are in leaves
+- internal nodes only route
+- leaves are linked left-to-right
+- every search ends in a leaf
+- non-root nodes obey min/max occupancy
+- root may be special
+*/
+
 #include "BufferPoolManager.h"
 #include "BPlusTreeLeafPage.h"
 #include "BPlusTreeInternalPage.h"

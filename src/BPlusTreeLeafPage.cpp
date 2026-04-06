@@ -1,5 +1,6 @@
 #include "BPlusTreeLeafPage.h"
 #include <cstring>
+#include <cassert>
 
 void BPlusTreeLeafPage::init(page_id_t page_id, page_id_t parent_id) {
     // Set the page type
@@ -110,4 +111,81 @@ void BPlusTreeLeafPage::split(BPlusTreeLeafPage *recipient) {
     // update parent
     recipient->setParentPageId(_parent_page_id);
 }
+
+bool BPlusTreeLeafPage::removeAt(int index) {
+    if (index < 0 or index >= _num_kv_pairs) 
+        return false;
     
+    // shift all entries one slot left after index
+    std::memmove(
+        &_array[index], // dest
+        &_array[index+1], // source
+        (_num_kv_pairs - index - 1) * sizeof(LeafMappingType));
+    _num_kv_pairs--;
+    return true;
+}
+
+bool BPlusTreeLeafPage::remove(const int& key) {
+    int index = lookUp(key); //find
+
+    if (index == -1)
+        return false;
+    
+    return removeAt(index);  //delete
+}
+
+void BPlusTreeLeafPage::prepend(const LeafMappingType &entry) {
+    // add one entry to front , used when borrowing from left
+    assert(_num_kv_pairs < _max_kv_pairs);
+
+    std::memmove(
+        &_array[1],
+        &_array[0],
+        (_num_kv_pairs) * sizeof(LeafMappingType)
+    );
+
+    _array[0] = entry;
+    _num_kv_pairs++;
+}
+
+void BPlusTreeLeafPage::append(const LeafMappingType &entry) {
+    assert(_num_kv_pairs < _max_kv_pairs);
+
+    _array[_num_kv_pairs] = entry;
+    _num_kv_pairs++;
+} 
+
+LeafMappingType BPlusTreeLeafPage::removeFirst() {
+    assert( _num_kv_pairs > 0 );
+
+    LeafMappingType res = _array[0];
+
+    std::memmove(
+        &_array[0],
+        &_array[1],
+        (_num_kv_pairs - 1) * sizeof(LeafMappingType)
+    );
+
+    _num_kv_pairs--;
+
+    return res;
+}
+
+LeafMappingType BPlusTreeLeafPage::removeLast() {
+    assert(_num_kv_pairs > 0);
+
+    LeafMappingType last = _array[_num_kv_pairs - 1];
+    _num_kv_pairs--;
+
+    return last;
+}
+
+void BPlusTreeLeafPage::absorb(BPlusTreeLeafPage *donor) {
+    assert (_num_kv_pairs + donor->getNumKVPairs() < _max_kv_pairs);
+    // enough space to hold all keys
+    
+    for (int i = 0; i < donor->getNumKVPairs(); i++) {
+        append(donor->getKVPair(i));
+    }
+    _next_page_id = donor->getNextPageId();
+}

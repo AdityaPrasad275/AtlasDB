@@ -38,5 +38,5 @@ public:
     void setNextPageId(page_id_t next_id) { _next_page_id = next_id; }
 
     const LeafMappingType& getKVPair(int index) const { return _array[index]; }
-    const int keyAt(int index) const { return _array[index].key; } // same as above, just dont have to do .key after, direct key retreival
+    int keyAt(int index) const { return _array[index].key; } // same as above, just dont have to do .key after, direct key retreival
 };
